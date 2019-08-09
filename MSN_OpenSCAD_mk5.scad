@@ -7,6 +7,8 @@ show_manchon =              false;
 show_capteur =              false;
 show_socle_entrainement =   false;
 
+show_electronique =         false;
+
 pose =                      "none"; // ["none", "assembly", "print"]
 
 eclate_all =                false;
@@ -16,7 +18,7 @@ eclate_manchon =            false;
 eclate_capteur =            false;
 eclate_socle_entrainement = false;
 
-$fn =                       20; // 100~150
+$fn =                       16; // 100~150
 
 // MODULES ############################
 
@@ -111,7 +113,6 @@ if (show(show_manchon)) {
     d_magnet_stop = 9.6;
     d_magnet = 19.6;
     h_base = 10;
-    h_drisse = 2;
     h_magnet = 7;
     translate(pose_mode([0,-20,15], [18,18,0]))
     rotate(pose_mode([-90,-90,0], [0,0,0]))
@@ -134,8 +135,7 @@ if (show(show_manchon)) {
         }
         translate([0,0,-0.1])
         cylinder(h=h_magnet+0.1, d=d_magnet, center=false); // trou pour l'aimant
-        translate([0,0,h_magnet])
-        union() { // trou avec stoppeur pour la drisse
+        translate([0,0,h_magnet]) { // trou avec stoppeur pour la drisse
             h_angle = 2;
             cylinder(d1=d_magnet_stop, d2=d_drisse(), h=h_angle, center=false);
             translate([0,0,h_angle])
@@ -233,5 +233,110 @@ if (show(show_socle_entrainement)) {
 // CORPS TRANSPARENT ##################
 
 // SOCLE BATTERIE #####################
+
+// ELECTRONIQUE #######################
+
+module interrupteur() {
+    l_pattes = 19.7;
+    e_pattes = 0.4;
+    e_total = 5.8;
+    h_total = 7.6;
+    l_block = 10.7;
+    h_block = 5;
+    l_baton = 2.9;
+    h_baton = 5;
+    e_baton = 6;
+    d_trou = 2.1;
+    e_trou = 12.8; // ecart bord à bord, et pas centre à centre
+    h_pin = h_total-h_block;
+    l_pin = 1.5;
+    e_pin = 0.4;
+    l_3pins = 7.5;
+    module interrupteur_pin() {
+        translate([0,e_pin/2,l_pin/2-h_pin])
+        rotate([90,0,0]) {
+            translate([l_pin/-2,0,0])
+            cube([l_pin,h_pin-l_pin/2+0.1,e_pin]);
+            cylinder(d=l_pin,h=e_pin);
+        }
+    }
+    difference() {
+        union() {
+            translate([l_pattes/-2,e_total/-2,h_block-e_pattes])
+            cube([l_pattes,e_total,e_pattes]);
+            translate([l_block/-2,e_total/-2,0])
+            cube([l_block,e_total,h_block]);
+            translate([e_baton/2-l_baton/2,0,0])
+            translate([l_baton/-2,l_baton/-2,h_block-0.1])
+            cube([l_baton,l_baton,h_baton+0.1]);
+            interrupteur_pin();
+            translate([l_3pins/2-l_pin/2,0,0])
+            interrupteur_pin();
+            translate([l_pin/2-l_3pins/2,0,0])
+            interrupteur_pin();
+        }
+        translate([e_trou/2+d_trou/2,0,h_block-e_pattes-0.1])
+        cylinder(d=d_trou,h=e_pattes+0.2);
+        translate([(e_trou/2+d_trou/2)*-1,0,h_block-e_pattes-0.1])
+        cylinder(d=d_trou,h=e_pattes+0.2);
+    }
+}
+
+module support_carte() {
+    //
+    // h total : 10.5
+    // l block : 10.7
+    // h block : 8.5
+    // e block : 5
+    // l pin : 0.6
+    // e pin : 0.3
+    // ecart pin l : 8.3 h : 3
+    //
+}
+
+module carte() {
+    //
+    // largeur : 15
+    // hauteur : 25
+    //
+    l_carte = 15;
+    h_carte = 25;
+    e_carte = 1.2;
+    //
+    // bloc support -> h : 5, l : 9.8, e : 2.5
+    // pin total : 11.4
+    // pin sortie bas total : 8.4
+    // s pin : 0.6
+    // espacement h : 3.2, l : 8.3
+    //
+    union() {
+        //
+        translate([0,l_carte/2,0])
+        cube([h_carte,l_carte,e_carte]);
+        //
+        //
+    }
+    //
+}
+
+module batterie() {
+    d_batterie = 17;
+    h_batterie = 34;
+    cylinder(d=d_batterie,h=h_batterie);
+}
+
+if (show_electronique) {
+    //color("blue")
+    //interrupteur();
+    //
+    color("violet")
+    support_carte();
+    //
+    color("green")
+    carte();
+    //
+    //color("red")
+    //batterie();
+}
 
 // TO BE CONTINUED ... ################
