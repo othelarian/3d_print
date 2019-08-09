@@ -1,62 +1,58 @@
+// ####################################
 // INPUTS #############################
+// ####################################
 
 show_all =                  true;
-show_test_couplage_1 =      false;
-show_test_couplage_2 =      false;
-show_manchon =              false;
-show_capteur =              false;
-show_socle_entrainement =   false;
+show_test_coupling_1 =      false;
+show_magnet_support =       false;
+show_rope_keeper =          false;
+show_training_base =        false;
 
-show_electronique =         false;
+show_electronics =          false;
 
 pose =                      "none"; // ["none", "assembly", "print"]
 
 eclate_all =                false;
-eclate_test_couplage_1 =    false;
-eclate_test_couplage_2 =    false;
-eclate_manchon =            false;
-eclate_capteur =            false;
-eclate_socle_entrainement = false;
+eclate_test_coupling_1 =    false;
+eclate_magnet_support =     false;
+eclate_rope_keeper =        false;
+eclate_training_base =      false;
 
 $fn =                       16; // 100~150
 
+// ####################################
 // MODULES ############################
+// ####################################
 
 include <Thread_Library.scad>
 
+// ####################################
 // HELPERS ############################
+// ####################################
 
 function show(v) = (show_all || v)? true : false;
 function pose_mode(a1, a2) = (pose == "assembly")? a1 : (pose == "print")? a2 : [0,0,0];
 function eclate(v) = (eclate_all || v)? true : false;
 
-module couplage_text(value, profondeur) {
-    intersection() {
-        difference() {
-            cylinder(d=d_ext()+0.05, h=8);
-            translate([0,0,-0.1])
-            cylinder(d=d_ext()-1, h=8.2);
-        }
-        translate([0,-((d_ext()/2)-(profondeur-0.1)),1])
-        rotate([90,0,0])
-        linear_extrude(height=profondeur)
-        text(value, size=5, halign="center");
-    }
-}
-
+// ####################################
 // GLOBAL PARAMETERS ##################
+// ####################################
 
 function h_pas_vis_1() = 8;
 function d_ext() = 24;
 function d_drisse() = 14;
 function d_pas_vis_1() = 18;
 function pitch_vis_1() = 2.4;
+function h_th_correction() = 10.2;
+function d_th_correction() = 17.4;
 
+// ####################################
 // TEST ###############################
+// ####################################
 
-// TEST COUPLAGE MANCHON ##############
+// TEST COUPLING 1 ####################
 
-if (show_test_couplage_1) { // NOTE : non relié au show global (test)
+if (show_test_coupling_1) { // NOTE : non relié au show global (test)
     h_base = 9;
     translate(pose_mode([0,0,0], [18,18,0]))
     difference() { // partie basse
@@ -74,9 +70,10 @@ if (show_test_couplage_1) { // NOTE : non relié au show global (test)
         cylinder(d=d_drisse(), h=20.2, center=false); // passage drisse
         translate([0,0,-0.1])
         cylinder(d=20, h=h_base-2, center=false); // simulation trou aimant
+        translate([11,0,-0.1])
+        cube([1,1,h_base+0.2]); // marquage tet coupling 1
         translate([0,0,2])
-        couplage_text("TC-1", 4);
-        if (eclate_test_couplage_1) { translate([0,0,-0.1]) cube(18); }
+        if (eclate_test_coupling_1) { translate([0,0,-0.1]) cube(18); }
     }
     translate(pose_mode([0,0,h_base+0.05], [18,48,13]))
     rotate(pose_mode([0,0,0], [0,180,0]))
@@ -92,24 +89,22 @@ if (show_test_couplage_1) { // NOTE : non relié au show global (test)
         cylinder(d=17.4, h=10.2, center=false); // thread correction
         translate([0,0,10])
         cylinder(d=d_drisse(), h=3.2, center=false); // trou drisse
+        translate([11,0,-0.1])
+        cube([1,1,13.2]); // marquage test coupling 1
         translate([0,0,2])
-        couplage_text("TC-1", 4);
-        if (eclate_test_couplage_1) { translate([0,0,-0.1]) cube(16); }
+        if (eclate_test_coupling_1) { translate([0,0,-0.1]) cube(16); }
     }
 }
 
-// TEST COUPLAGE BATTERIE #############
+// ####################################
+// SERIOUS PARTS ######################
+// ####################################
 
-if (show_test_couplage_2) { // NOTE : non relié au show global (test)
-    //
-    //
-}
+// MAGNET SUPPORT #####################
 
-// MANCHON ############################
-
-if (show(show_manchon)) {
-    // NOTE : longueur total = 18mm
-    // NOTE : longueur assemblé = 10mm
+if (show(show_magnet_support)) {
+    // NOTE : total length = 18mm
+    // NOTE : assembled length = 10mm
     d_magnet_stop = 9.6;
     d_magnet = 19.6;
     h_base = 10;
@@ -143,13 +138,13 @@ if (show(show_manchon)) {
             translate([0,0,-1])
             cylinder(d=d_magnet_stop, h=1+0.1, center=false);
         }
-        if (eclate(eclate_manchon)) { translate([0,0,-0.1]) cube([15,15,40]); } // eclate
+        if (eclate(eclate_magnet_support)) { translate([0,0,-0.1]) cube([15,15,40]); } // eclate
     }
 }
 
-// CAPTEUR ############################
+// ROPE KEEPER ########################
 
-if (show(show_capteur)) {
+if (show(show_rope_keeper)) {
     // NOTE : longueur totale = 78mm
     // NOTE : longueur assemblé = 70mm
     h_j_grip = 6;
@@ -157,6 +152,7 @@ if (show(show_capteur)) {
     h_c_manchon = 9;
     h_grip = 42;
     h_tampon = 7;
+    h_percage = 60;
     //
     translate(pose_mode([0,-10+0.05,15], [18,48,0]))
     rotate(pose_mode([-90,-90,0], [0,0,0])) {
@@ -186,22 +182,23 @@ if (show(show_capteur)) {
             pitchRadius=d_pas_vis_1()/2,
             stepsPerTurn=$fn
         );
-        cylinder(d=17.4, h=10.2, center=false); // thread correction
+        cylinder(d=d_th_correction(), h=h_th_correction(), center=false); // thread correction
         //
         // EN COURS
         //
-        union() { // creux pour la drisse
-            translate([0,0,h_c_manchon-4])
-            cylinder(d=d_drisse(), h=40, center=false); // zone de rangement
-            //
-            // TODO : zone tampon partie socle
-            //
-        }
+        translate([0,0,h_c_manchon])
+        #cylinder(d=d_drisse(), h=h_percage, center=false); // zone de rangement
+        //
+        // TODO : zone tampon partie socle
+        //
+        //#cylinder(d1=d_drisse(),d2=?,h=?);
+        //#cylinder(d=?d2?,h=?);
+        //#cylinder()
         //
         //
         // TODO : grille d'aération
         //
-        if (eclate(eclate_capteur)) { translate([0,0,-0.1]) cube([15,15,80]); } // eclate
+        if (eclate(eclate_rope_keeper)) { translate([0,0,-0.1]) cube([15,15,80]); } // eclate
     }
     //
     // ZONE DE TEST
@@ -210,9 +207,9 @@ if (show(show_capteur)) {
     }
 }
 
-// SOCLE ENTRAINEMENT #################
+// TRAINING BASE ######################
 
-if (show(show_socle_entrainement)) {
+if (show(show_training_base)) {
     // NOTE : longueur totale == longueur assemblé = 220mm
     //
     //
@@ -222,7 +219,7 @@ if (show(show_socle_entrainement)) {
     difference() {
         //
         //
-        if (eclate(eclate_socle_entrainement)) { translate([0,0,-0.1]) cube([15,15,50]); }
+        if (eclate(eclate_training_base)) { translate([0,0,-0.1]) cube([15,15,50]); }
     }
     //
     // ZONE DE TEST
@@ -232,9 +229,10 @@ if (show(show_socle_entrainement)) {
 
 // CORPS TRANSPARENT ##################
 
-// SOCLE BATTERIE #####################
 
-// ELECTRONIQUE #######################
+// ELECTRONICS SUPPORT ################
+
+// ELECTRONICS ########################
 
 module interrupteur() {
     l_pattes = 19.7;
@@ -283,40 +281,73 @@ module interrupteur() {
 }
 
 module support_carte() {
-    //
-    // h total : 10.5
-    // l block : 10.7
-    // h block : 8.5
-    // e block : 5
-    // l pin : 0.6
-    // e pin : 0.3
-    // ecart pin l : 8.3 h : 3
-    //
+    h_total = 10.5;
+    l_block = 10.7;
+    e_block = 8.5;
+    h_block = 5;
+    l_pin = 0.6;
+    e_pin = 0.3;
+    h_pin = h_total-h_block;
+    e_l_pins = 8.3;
+    e_h_pins = 3;
+    e_calc_l_pins = (e_l_pins-l_pin)/3;
+    module support_carte_pins() {
+        translate([e_pin/-2,l_pin/-2,-h_pin])
+        cube([e_pin,l_pin,h_pin+0.1]);
+    }
+    union () {
+        translate([h_block/-2,l_block/-2,0])
+        cube([h_block,l_block,e_block]);
+        translate([e_h_pins/-2+e_pin/2,0,0]) {
+            translate([0,e_l_pins/-2+l_pin/2,0]) support_carte_pins();
+            translate([0,e_calc_l_pins/-2,0]) support_carte_pins();
+            translate([0,e_calc_l_pins/2,0]) support_carte_pins();
+            translate([0,e_l_pins/2-l_pin/2,0]) support_carte_pins();        }
+        translate([e_h_pins/2-e_pin/2,0,0]) {
+            translate([0,e_l_pins/-2+l_pin/2,0]) support_carte_pins();
+            translate([0,e_calc_l_pins/-2,0]) support_carte_pins();
+            translate([0,e_calc_l_pins/2,0]) support_carte_pins();
+            translate([0,e_l_pins/2-l_pin/2,0]) support_carte_pins();
+        }
+    }
 }
 
 module carte() {
-    //
-    // largeur : 15
-    // hauteur : 25
-    //
     l_carte = 15;
     h_carte = 25;
     e_carte = 1.2;
-    //
-    // bloc support -> h : 5, l : 9.8, e : 2.5
-    // pin total : 11.4
-    // pin sortie bas total : 8.4
-    // s pin : 0.6
-    // espacement h : 3.2, l : 8.3
-    //
-    union() {
-        //
-        translate([0,l_carte/2,0])
-        cube([h_carte,l_carte,e_carte]);
-        //
-        //
+    e_carte_block = 1.5;
+    h_block = 5;
+    l_block = 9.8;
+    e_block = 2.5;
+    h_pin = 11.4;
+    l_pin = 0.6;
+    s_pin = 8.4;
+    e_h_pins = 3.2;
+    e_l_pins = 8.3;
+    e_calc_l_pins = (e_l_pins-l_pin)/3;
+    module carte_pin() {
+        translate([l_pin/-2,l_pin/-2,e_block-s_pin])
+        cube([l_pin,l_pin,h_pin]);
     }
-    //
+    union() {
+        translate([h_block/-2-e_carte_block,l_carte/-2,e_block])
+        cube([h_carte,l_carte,e_carte]);
+        translate([h_block/-2,l_block/-2,0])
+        cube([h_block,l_block,e_block+0.1]);
+        translate([e_h_pins/-2+l_pin/2,0,0]) {
+            translate([0,e_l_pins/-2+l_pin/2,0]) carte_pin();
+            translate([0,e_calc_l_pins/-2,0]) carte_pin();
+            translate([0,e_calc_l_pins/2,0]) carte_pin();
+            translate([0,e_l_pins/2-l_pin/2,0]) carte_pin();
+        }
+        translate([e_h_pins/2-l_pin/2,0,0]) {
+            translate([0,e_l_pins/-2+l_pin/2,0]) carte_pin();
+            translate([0,e_calc_l_pins/-2,0]) carte_pin();
+            translate([0,e_calc_l_pins/2,0]) carte_pin();
+            translate([0,e_l_pins/2-l_pin/2,0]) carte_pin();
+        }
+    }
 }
 
 module batterie() {
@@ -325,18 +356,15 @@ module batterie() {
     cylinder(d=d_batterie,h=h_batterie);
 }
 
-if (show_electronique) {
-    //color("blue")
-    //interrupteur();
-    //
-    color("violet")
-    support_carte();
-    //
-    color("green")
-    carte();
-    //
-    //color("red")
-    //batterie();
+if (show_electronics) {
+    translate([0,20,0])
+    color("blue") interrupteur();
+    translate([0,-20,0])
+    color("violet") support_carte();
+    translate([-20,0,0])
+    color("green") carte();
+    translate([20,0,0])
+    color("red") batterie();
 }
 
 // TO BE CONTINUED ... ################
