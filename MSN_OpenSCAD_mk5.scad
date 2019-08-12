@@ -2,28 +2,39 @@
 // INPUTS #############################
 // ####################################
 
+pose =                      "none"; // ["none", "assembly", "print"]
 show_all =                  true;
-show_test_coupling_1 =      false;
+eclate_all =                false;
+$fn =                       16; // 100~150
+
+/* [Separate show] */
+
 show_magnet_support =       false;
 show_rope_keeper =          false;
-choice_rope_keeper =        "default"; // ["default", "RK-V1", "RK-V2"]
 show_training_base =        false;
+
+show_cap =                  false;
 
 show_elec_stage =           false;
 
-show_electronics =          false;
+/* [Eclate] */
 
-pose =                      "none"; // ["none", "assembly", "print"]
-
-eclate_all =                false;
-eclate_test_coupling_1 =    false;
 eclate_magnet_support =     false;
 eclate_rope_keeper =        false;
 eclate_training_base =      false;
 
-eclate_elec_stage =         false;
+eclate_cap =                false;
 
-$fn =                       16; // 100~150
+/* [Variations] */
+
+choice_rope_keeper =        "default"; // ["default", "RK-V1", "RK-V2"]
+choice_training_base =      "default"; // ["default", "SC-V1"]
+
+/* [Tests] */
+
+show_test_coupling_1 =      false;
+eclate_test_coupling_1 =    false;
+show_electronics =          false;
 
 // ####################################
 // MODULES ############################
@@ -43,10 +54,10 @@ function eclate(v) = (eclate_all || v)? true : false;
 // GLOBAL PARAMETERS ##################
 // ####################################
 
-function h_pas_vis_1() = 8;
 function d_ext() = 24;
 function d_drisse() = 14;
 function d_pas_vis_1() = 18;
+function h_pas_vis_1() = 8;
 function pitch_vis_1() = 2.4;
 function h_th_correction() = 10.2;
 function d_th_correction() = 17.4;
@@ -137,7 +148,8 @@ if (show(show_magnet_support)) {
         cylinder(h=h_magnet+0.1, d=d_magnet, center=false); // trou pour l'aimant
         translate([0,0,h_magnet]) { // trou avec stoppeur pour la drisse
             h_angle = 2;
-            cylinder(d1=d_magnet_stop, d2=d_drisse(), h=h_angle, center=false);
+            translate([0,0,-0.02])
+            cylinder(d1=d_magnet_stop, d2=d_drisse(), h=h_angle+0.04, center=false);
             translate([0,0,h_angle])
             cylinder(d=d_drisse(), h=h_base+h_pas_vis_1()-h_magnet-h_angle+0.1, center=false);
             translate([0,0,-1])
@@ -272,34 +284,118 @@ if (show(show_rope_keeper)) {
 
 // TRAINING BASE ######################
 
-if (show(show_training_base)) {
-    // NOTE : total length = 220mm
-    // NOTE : apparent length = 220mm
-    //
-    //
-    translate(pose_mode([0,0,0], [0,0,0]))
-    rotate(pose_mode([0,0,0], [0,0,0]))
-    //
+module base_SC_D(
+    d_trou = d_ext()-4
+    )
+{
+    h_base = 220;
+    d_cap = d_ext()-8;
+    h_cap = (d_ext()-d_cap)/2;
+    h_trou = 205;
     difference() {
-        //
-        //
-        if (eclate(eclate_training_base)) { translate([0,0,-0.1]) cube([15,15,50]); }
+        union() {
+            cylinder(d=d_ext(),h=h_base-h_cap);
+            translate([0,0,h_base-h_cap])
+            cylinder(d1=d_ext(),d2=d_cap,h=h_cap);
+        }
+        trapezoidThreadNegativeSpace( // pas de vis
+            length=h_pas_vis_1(),
+            pitch=pitch_vis_1(),
+            pitchRadius=d_pas_vis_1()/2,
+            stepsPerTurn=$fn
+        );
+        cylinder(d=d_th_correction(), h=h_th_correction(), center=false); // thread correction
+        translate([0,0,h_th_correction()])
+        cylinder(d=d_trou,h=h_trou);
     }
 }
 
+if (show(show_training_base)) {
+    // NOTE : total length = 220mm
+    // NOTE : apparent length = 220mm
+    d_trou = d_ext()-4;
+    translate(pose_mode([0,60+0.1,15], [18,78,0]))
+    rotate(pose_mode([-90,-90,0], [0,0,0]))
+    difference() {
+        if (choice_training_base == "SC-V1") {
+            h_s_plein = 130;
+            h_plein = 70;
+            v_creux = 6;
+            h_cone = 5;
+            d_n_trou = d_trou-v_creux;
+            h_n_trou = h_plein-h_cone*2;
+            difference() {
+                union() {
+                    base_SC_D();
+                    translate([0,0,h_s_plein])
+                    cylinder(d=d_trou+0.1,h=h_plein);
+                }
+                translate([0,0,h_s_plein-0.01])
+                cylinder(d1=d_trou,d2=d_n_trou,h=h_cone);
+                translate([0,0,h_s_plein+h_cone-0.1])
+                cylinder(d=d_n_trou,h=h_n_trou+0.2);
+                translate([0,0,h_s_plein+h_cone+h_n_trou+0.01])
+                cylinder(d1=d_n_trou,d2=d_trou,h=h_cone);
+                points = [
+                    [d_ext()/2+0.1,0],
+                    [d_ext()/2,0],
+                    [(d_ext()-v_creux)/2,h_cone],
+                    [(d_ext()-v_creux)/2,h_plein-h_cone],
+                    [d_ext()/2,h_plein],
+                    [d_ext()/2+0.1,h_plein]
+                ];
+                translate([0,0,h_s_plein])
+                rotate_extrude()
+                polygon(points);
+            }
+        }
+        else { base_SC_D(); }
+        if (eclate(eclate_training_base)) { translate([0,0,-0.1]) cube([15,15,221]); }
+    }
+}
+
+// TWO-PART BASE ######################
+
+//if (show)
+
 // BASIC CAP ##########################
 
-// TODO : bouchon simple
-// TODO : bouchon avec trou pour interrupteur
+module cap_CP_D() {
+    //
+    //
+    //
+}
+
+if (show(show_cap)) {
+    // NOTE : total length = ???
+    // NOTE : apparent length = ???
+    //
+    //
+    difference() {
+        //
+        cap_CP_D();
+        //
+        // TODO : ajout du trou pour l'interrupteur
+        //
+        if (eclate(eclate_cap)) { /* TODO : eclate */ }
+        //
+    }
+    //
+}
 
 // ELECTRONICS SUPPORT STAGE ##########
 
 if (show(show_elec_stage)) {
-    // NOTE : total length = ???
+    // NOTE : total length = N/A (with or without electronic parts?)
     // NOTE : apparent length = N/A (inside part)
     //
+    d_etage = 19;
+    h_creux = 8; // 0.4 de marge
+    l_creux = 6;
+    e_plaque_interrupteur = 0.6; // 0.2 de marge
+    e_interrupteur = 6.2; // idem, 0.4 (0.2*2) de marge
+    l_interrupteur = 11.2; // 0.5 de marge
     //
-    h_creux = 10; // TODO : check avec de VRAIES valeurs (i.e. avec un interrupteur)
     h_espacement = 1;
     //
     d_batterie = 18;
@@ -308,14 +404,40 @@ if (show(show_elec_stage)) {
     //
     h_corps_etage = h_creux+h_espacement*2+h_batterie;
     //
+    translate(pose_mode([0,90,15],[0,0,0]))
+    rotate(pose_mode([-90,-90,0],[0,0,0]))
+    //
     difference() {
+        union() {
+            //
+            cylinder(d=d_etage,h=h_corps_etage);
+            //
+            // TODO : bloc pour le support de carte
+            //
+            // TODO : accroche pour la rondelle
+            //
+        }
+        // battery hole
         //
+        // TODO : faire le trou pour la batterie
         //
+        // switch hole
+        translate([d_etage/-2-0.1,e_interrupteur/-2,-0.1])
+        cube([d_etage+0.2,e_interrupteur,e_plaque_interrupteur+0.1]);
+        translate([l_creux/-2,d_etage/-2-0.1,-0.1])
+        cube([l_creux,d_etage+0.2,h_creux+0.1]);
+        translate([l_interrupteur/-2,e_interrupteur/-2,-0.1])
+        cube([l_interrupteur,e_interrupteur,h_creux+0.1]);
+        // wire way
         //
+        // TODO : passage du câble d'interrupteur
         //
-        // TODO : l'éclaté
+        // TODO : trou poussoir
         //
-        if (eclate(eclate_elec_stage)) { /* TODO : eclate */ }
+        // TODO : passage pattes de plaques
+        //
+        // TODO : trou pour le support de carte
+        //
         //
     }
 }
@@ -404,7 +526,7 @@ module carte() {
     l_carte = 15;
     h_carte = 25;
     e_carte = 1.2;
-    e_carte_block = 1.5;
+    e_carte_block = 0.5;
     h_block = 5;
     l_block = 9.8;
     e_block = 2.5;
@@ -444,23 +566,34 @@ module batterie() {
     cylinder(d=d_batterie,h=h_batterie);
 }
 
+module shock_sensor() {
+    d_sensor = 5;
+    h_sensor = 11;
+    l_pin = 0.6;
+    h_pin = 2;
+    union() {
+        cylinder(d=d_sensor,h=h_sensor);
+        translate([l_pin/-2,l_pin/-2-1,-h_pin])
+        cube([l_pin,l_pin,h_pin+0.1]);
+        translate([l_pin/-2,l_pin/-2+1,-h_pin])
+        cube([l_pin,l_pin,h_pin+0.1]);
+    }
+}
+
 if (show_electronics && show(show_elec_stage)) {
-    //
-    // TODO : changer les translates
-    //
-    translate([0,20,0])
-    //
-    color("blue") interrupteur();
-    //
-    translate([0,-20,0])
-    //
-    color("violet") support_carte();
-    //
-    translate([-20,0,0])
-    //
-    color("green") carte();
-    //
-    translate([20,0,0])
-    //
-    color("red") batterie();
+    translate(pose_mode([0,90,15],[0,0,0]))
+    rotate(pose_mode([-90,-90,0],[0,0,0])) {
+        translate([0,0,5])
+        rotate([180,0,0])
+        color("blue") interrupteur();
+        translate([-6,0,60]) {
+            rotate([180,-90,0]) {
+                color("violet") support_carte();
+                translate([0,0,9]) color("green") carte();
+            }
+            translate([4,0,8]) color("yellow") shock_sensor();
+        }
+        translate([0,-20,8])
+        color("red") batterie();
+    }
 }
