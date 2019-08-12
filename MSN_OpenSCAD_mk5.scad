@@ -6,7 +6,10 @@ show_all =                  true;
 show_test_coupling_1 =      false;
 show_magnet_support =       false;
 show_rope_keeper =          false;
+choice_rope_keeper =        "default"; // ["default", "RK-V1", "RK-V2"]
 show_training_base =        false;
+
+show_elec_stage =           false;
 
 show_electronics =          false;
 
@@ -17,6 +20,8 @@ eclate_test_coupling_1 =    false;
 eclate_magnet_support =     false;
 eclate_rope_keeper =        false;
 eclate_training_base =      false;
+
+eclate_elec_stage =         false;
 
 $fn =                       16; // 100~150
 
@@ -104,7 +109,7 @@ if (show_test_coupling_1) { // NOTE : non relié au show global (test)
 
 if (show(show_magnet_support)) {
     // NOTE : total length = 18mm
-    // NOTE : assembled length = 10mm
+    // NOTE : apparent length = 10mm
     d_magnet_stop = 9.6;
     d_magnet = 19.6;
     h_base = 10;
@@ -144,18 +149,19 @@ if (show(show_magnet_support)) {
 
 // ROPE KEEPER ########################
 
-if (show(show_rope_keeper)) {
-    // NOTE : longueur totale = 78mm
-    // NOTE : longueur assemblé = 70mm
-    h_j_grip = 6;
-    d_grip = d_ext()-h_j_grip;
-    h_c_manchon = 9;
-    h_grip = 42;
+module RopeKeeperRK_D(
+    d_grip = d_ext()-6,
+    h_c_manchon = 9, // length of the threaded zone, magnet side, extern
+    h_j_grip = 6, // cone length to go through threaded zone to grp zone, extern
+    h_grip = 42 // length of the narrowest zone of the rope keeper
+    )
+{
     h_tampon = 7;
-    h_percage = 60;
-    //
-    translate(pose_mode([0,-10+0.05,15], [18,48,0]))
-    rotate(pose_mode([-90,-90,0], [0,0,0])) {
+    h_percage = 56.8;
+    d_stoppeur = 7;
+    h_stoppeur = (d_drisse()-d_stoppeur)/2;
+    h_i_tampon = 2;
+    h_ouverture = 2;
     difference() {
         union() {
             cylinder(d=d_ext(), h=h_c_manchon, center=false); // couplage du manchon
@@ -174,7 +180,6 @@ if (show(show_rope_keeper)) {
                 pitchRadius=d_pas_vis_1()/2,
                 stepsPerTurn=$fn
             );
-            //
         }
         trapezoidThreadNegativeSpace( // pas de vis
             length=h_pas_vis_1(),
@@ -183,54 +188,137 @@ if (show(show_rope_keeper)) {
             stepsPerTurn=$fn
         );
         cylinder(d=d_th_correction(), h=h_th_correction(), center=false); // thread correction
-        //
-        // EN COURS
-        //
-        translate([0,0,h_c_manchon])
-        #cylinder(d=d_drisse(), h=h_percage, center=false); // zone de rangement
-        //
-        // TODO : zone tampon partie socle
-        //
-        //#cylinder(d1=d_drisse(),d2=?,h=?);
-        //#cylinder(d=?d2?,h=?);
-        //#cylinder()
-        //
-        //
-        // TODO : grille d'aération
-        //
-        if (eclate(eclate_rope_keeper)) { translate([0,0,-0.1]) cube([15,15,80]); } // eclate
+        translate([0,0,h_th_correction()])
+        cylinder(d=d_drisse(), h=h_percage, center=false); // rope storage zone
+        translate([0,0,h_th_correction()+h_percage]) { // diabolo stoppeur de la drisse
+            translate([0,0,-0.01])
+            cylinder(d1=d_drisse(),d2=d_stoppeur,h=h_stoppeur+0.01);
+            translate([0,0,h_stoppeur-0.1])
+            cylinder(d=d_stoppeur,h=h_i_tampon+0.2,center=false);
+            translate([0,0,h_stoppeur+h_i_tampon])
+            cylinder(d1=d_stoppeur,d2=d_drisse(),h=h_stoppeur,center=false);
+            translate([0,0,h_stoppeur*2+h_i_tampon-0.01])
+            cylinder(d=d_drisse(),h=h_ouverture+0.11,center=false);
+        }
     }
-    //
-    // ZONE DE TEST
-    //
-    //
+}
+
+if (show(show_rope_keeper)) {
+    // NOTE : total length = 78mm
+    // NOTE : apparent length = 70mm
+    h_c_manchon = 9;
+    h_j_grip = 6;
+    h_grip = 42;
+    d_grip = d_ext()-h_j_grip;
+    translate(pose_mode([0,-10+0.05,15], [18,48,0]))
+    rotate(pose_mode([-90,-90,0], [0,0,0]))
+    difference() {
+        if (choice_rope_keeper == "RK-V1") {
+            d_marque = 2;
+            e_marque = 0.5;
+            h_marque = 3.5;
+            d_trou = 3;
+            h_i_trou = 5;
+            h_p_trou = 8;
+            difference() {
+                RopeKeeperRK_D(d_grip,h_c_manchon,h_j_grip,h_grip);
+                for (i = [0:5]) { // marquage sur la partie de connexion avec le manchon
+                    rotate([0,0,i*60])
+                    translate([d_ext()/-2+e_marque,0,h_marque])
+                    rotate([0,-90,0]) {
+                        cylinder(d=d_marque,h=e_marque+0.1,center=false);
+                        translate([0,d_marque/-2,0]) cube([d_marque,d_marque,e_marque+0.1]);
+                        translate([d_marque,0,0]) cylinder(d=d_marque,h=e_marque+0.1,center=false);
+                    }
+                }
+                translate([0,0,h_c_manchon+h_j_grip+h_i_trou])
+                for (i = [0:11]) {
+                    nb_trou = (i%2 == 0)? 4 : 3;
+                    translate([0,0,(i%2 == 1)? h_p_trou/2 : 0])
+                    rotate([0,0,30*i])
+                    for (j = [0:nb_trou])
+                    translate([0,0,h_p_trou*j])
+                    rotate([0,90,0])
+                    cylinder(d=d_trou,h=d_grip/2+0.1);
+                }
+            }
+        }
+        else if (choice_rope_keeper == "RK-V2") {
+            d_trou = 1.5;
+            l_trou = 6;
+            h_i_trou = 6;
+            h_p_trou = 14;
+            e_trou = d_grip/2+0.1;
+            difference() {
+                RopeKeeperRK_D(d_grip,h_c_manchon,h_j_grip,h_grip);
+                translate([0,0,h_c_manchon+h_j_grip+h_i_trou])
+                for (i = [0:12]) {
+                    translate([0,0,(i%2 == 1)? h_p_trou/2 : 0])
+                    rotate([0,0,30*i])
+                    for (j = [0:((i%2 == 0)? 2 : 1)])
+                    translate([0,0,h_p_trou*j])
+                    rotate([0,90,0]) {
+                        translate([l_trou/2,0,0]) cylinder(d=d_trou,h=e_trou);
+                        translate([l_trou/-2,d_trou/-2,0]) cube([l_trou,d_trou,e_trou]);
+                        translate([l_trou/-2,0,0]) cylinder(d=d_trou,h=e_trou);
+                    }
+                }
+            }
+        }
+        else { RopeKeeperRK_D(d_grip,h_c_manchon,h_j_grip,h_grip); }
+        if (eclate(eclate_rope_keeper)) { translate([0,0,-0.1]) cube([15,15,80]); } // eclate
     }
 }
 
 // TRAINING BASE ######################
 
 if (show(show_training_base)) {
-    // NOTE : longueur totale == longueur assemblé = 220mm
+    // NOTE : total length = 220mm
+    // NOTE : apparent length = 220mm
     //
     //
     translate(pose_mode([0,0,0], [0,0,0]))
-    rotate(pose_mode([0,0,0], [0,0,0])) {
+    rotate(pose_mode([0,0,0], [0,0,0]))
     //
     difference() {
         //
         //
         if (eclate(eclate_training_base)) { translate([0,0,-0.1]) cube([15,15,50]); }
     }
-    //
-    // ZONE DE TEST
-    //
-    }
 }
 
-// CORPS TRANSPARENT ##################
+// BASIC CAP ##########################
 
+// TODO : bouchon simple
+// TODO : bouchon avec trou pour interrupteur
 
-// ELECTRONICS SUPPORT ################
+// ELECTRONICS SUPPORT STAGE ##########
+
+if (show(show_elec_stage)) {
+    // NOTE : total length = ???
+    // NOTE : apparent length = N/A (inside part)
+    //
+    //
+    h_creux = 10; // TODO : check avec de VRAIES valeurs (i.e. avec un interrupteur)
+    h_espacement = 1;
+    //
+    d_batterie = 18;
+    h_batterie = 38;
+    //
+    //
+    h_corps_etage = h_creux+h_espacement*2+h_batterie;
+    //
+    difference() {
+        //
+        //
+        //
+        //
+        // TODO : l'éclaté
+        //
+        if (eclate(eclate_elec_stage)) { /* TODO : eclate */ }
+        //
+    }
+}
 
 // ELECTRONICS ########################
 
@@ -356,15 +444,23 @@ module batterie() {
     cylinder(d=d_batterie,h=h_batterie);
 }
 
-if (show_electronics) {
+if (show_electronics && show(show_elec_stage)) {
+    //
+    // TODO : changer les translates
+    //
     translate([0,20,0])
+    //
     color("blue") interrupteur();
+    //
     translate([0,-20,0])
+    //
     color("violet") support_carte();
+    //
     translate([-20,0,0])
+    //
     color("green") carte();
+    //
     translate([20,0,0])
+    //
     color("red") batterie();
 }
-
-// TO BE CONTINUED ... ################
