@@ -9,7 +9,7 @@ $fn =                       16; // 100~150
 
 /* [Separate show] */
 
-show_magnet_support =       false;
+show_top =                  false;
 show_rope_keeper =          false;
 show_training_base =        false;
 
@@ -19,7 +19,7 @@ show_elec_stage =           false;
 
 /* [Eclate] */
 
-eclate_magnet_support =     false;
+eclate_top =                false;
 eclate_rope_keeper =        false;
 eclate_training_base =      false;
 
@@ -27,6 +27,7 @@ eclate_cap =                false;
 
 /* [Variations] */
 
+choice_top =                "classic"; // ["classic", "magnet"]
 choice_rope_keeper =        "default"; // ["default", "RK-V1", "RK-V2"]
 choice_training_base =      "default"; // ["default", "SC-V1"]
 
@@ -102,7 +103,7 @@ if (show_test_coupling_1) { // NOTE : non relié au show global (test)
             pitchRadius=9,
             stepsPerTurn=$fn
         );
-        cylinder(d=17.4, h=10.2, center=false); // thread correction
+        cylinder(d=d_th_correction(),h=h_th_correction(),center=false); // thread correction
         translate([0,0,10])
         cylinder(d=d_drisse(), h=3.2, center=false); // trou drisse
         translate([11,0,-0.1])
@@ -118,15 +119,12 @@ if (show_test_coupling_1) { // NOTE : non relié au show global (test)
 
 // MAGNET SUPPORT #####################
 
-if (show(show_magnet_support)) {
-    // NOTE : total length = 18mm
-    // NOTE : apparent length = 10mm
-    d_magnet_stop = 9.6;
-    d_magnet = 19.6;
+module top_default(
+    h_trou = 7
+    )
+{
+    d_drisse_stop = 9.6;
     h_base = 10;
-    h_magnet = 7;
-    translate(pose_mode([0,-20,15], [18,18,0]))
-    rotate(pose_mode([-90,-90,0], [0,0,0]))
     difference() {
         union() {
             cylinder(h=h_base+0.01, d=d_ext(), center=false); // base externe
@@ -144,18 +142,38 @@ if (show(show_magnet_support)) {
             translate([0,0,-0.2])
             cylinder(d1=d_ext()-1.3, d2=d_ext()+0.5, h=2.3, center=false);
         }
-        translate([0,0,-0.1])
-        cylinder(h=h_magnet+0.1, d=d_magnet, center=false); // trou pour l'aimant
-        translate([0,0,h_magnet]) { // trou avec stoppeur pour la drisse
+        translate([0,0,h_trou]) { // trou avec stoppeur pour la drisse
             h_angle = 2;
             translate([0,0,-0.02])
-            cylinder(d1=d_magnet_stop, d2=d_drisse(), h=h_angle+0.04, center=false);
+            cylinder(d1=d_drisse_stop, d2=d_drisse(), h=h_angle+0.04, center=false);
             translate([0,0,h_angle])
-            cylinder(d=d_drisse(), h=h_base+h_pas_vis_1()-h_magnet-h_angle+0.1, center=false);
+            cylinder(d=d_drisse(), h=h_base+h_pas_vis_1()-h_trou-h_angle+0.1, center=false);
             translate([0,0,-1])
-            cylinder(d=d_magnet_stop, h=1+0.1, center=false);
+            cylinder(d=d_drisse_stop, h=1+0.1, center=false);
         }
-        if (eclate(eclate_magnet_support)) { translate([0,0,-0.1]) cube([15,15,40]); } // eclate
+    }
+}
+
+if (show(show_top)) {
+    // NOTE : total length = 18mm
+    // NOTE : apparent length = 10mm
+    translate(pose_mode([0,-20,15], [18,18,0]))
+    rotate(pose_mode([-90,-90,0], [0,0,0]))
+    difference() {
+        top_default();
+        if (choice_top == "classic") {
+            d_drisse_trou = 8.5;
+            h_drisse_trou = 7;
+            translate([0,0,-0.1])
+            cylinder(d=d_drisse_trou,h=h_drisse_trou+0.2);
+        } else if (choice_top == "magnet") {
+            d_magnet = 19.6;
+            h_base = 10;
+            h_magnet = 7; // -> h_trou
+            translate([0,0,-0.1])
+            cylinder(h=h_magnet+0.1, d=d_magnet, center=false); // trou pour l'aimant
+        }
+        if (eclate(eclate_top)) { translate([0,0,-0.1]) cube([15,15,40]); } // eclate
     }
 }
 
