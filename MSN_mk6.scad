@@ -2,7 +2,7 @@
 // INPUTS #############################
 // ####################################
 
-compose =                   "none"; // ["none", "nunchaku", "staff"]
+compose =                   "none"; // ["none", "tail", "nunchaku", "staff"]
 $fn =                       16; // 100~150
 
 /* [Separate show] */
@@ -13,8 +13,8 @@ show_magnet_top =           false;
 show_classic_cap =          false;
 show_electric_cap =         false; // WAIT
 show_male_connect =         false;
-show_female_connect_hole =  false; // WIP
-show_female_connect_stop =  false; // WIP
+show_female_connect_hole =  false;
+show_female_connect_stop =  false;
 show_electric_stage =       false; // WAIT
 show_electric_connector =   false; // WAIT
 show_classic_leds_support = false; // WAIT
@@ -39,9 +39,8 @@ eclate_generic_connect =    false;
 
 /* [Variations: Generic] */
 
-//var_gen_
-
-// TODO : length of the tail
+var_gen_tube_length =       200; // [30:400]
+var_gen_mode =              "training"; // ["training", "led", "esp", "saber"]
 
 /* [Variations: Nunchaku] */
 
@@ -73,6 +72,7 @@ function d_pin_base() = 4;
 function h_pin_base() = 0.8;
 function d_pin_top() = 2;
 function h_pin_top() = 3;
+function d_stop() = 8;
 function slice_thickness() = 1.2;
 function thread_radius_1() = 10;
 function thread_length_1() = 8;
@@ -120,6 +120,10 @@ module thread_negative_1() {
         stepsPerTurn=$fn
     );
     cylinder(d=d_th_correction(),h=h_th_correction(),center=false); // thread correction
+}
+
+module pin_hole(h_hole) {
+    translate([d_ext()/2,0,h_hole]) rotate([0,-90,0]) scale([1.2,1.2,1]) pin();
 }
 
 // ####################################
@@ -186,16 +190,15 @@ module classic_cap() {
         }
         translate([0,0,t_top_cap+slice_thickness()])
         cylinder(d=d_tube_ext(),h=h_tube_cover()+0.1);
-        translate([d_ext()/2,0,3*slice_thickness()+h_tube_cover()/2])
-        rotate([0,-90,0])
-        scale([1.2,1.2,1])
-        pin();
+        pin_hole(3*slice_thickness()+h_tube_cover()/2);
         if (eclate_classic_cap) {
             translate([0,0,-0.1])
             cube([d_ext()/2+0.1,d_ext()/2+0.1,3*slice_thickness()+h_tube_cover()+0.2]);
         }
     }
 }
+
+function classic_cap_length() = h_tube_cover()+3*slice_thickness();
 
 module electric_cap() {
     //
@@ -219,6 +222,7 @@ module male_connect() {
         cylinder(d=d_tube_ext(),h=h_tube_cover()+0.1);
         translate([0,0,h_tube_cover()-0.1])
         cylinder(d=d_intern(),h=thread_length_1()+slice_thickness()+0.2);
+        pin_hole(h_tube_cover()/2);
         if (eclate_generic_connect) {
             total_length = h_tube_cover()+slice_thickness()+thread_length_1();
             translate([0,0,-0.1])
@@ -227,48 +231,41 @@ module male_connect() {
     }
 }
 
+function male_connect_length() = h_tube_cover()+slice_thickness()+thread_length_1();
+
 module female_connect_generic() {
-    h_total = thread_length_1()+2*thread_pitch_1()+slice_thickness()+h_tube_cover();
     difference() {
-        cylinder(d=d_ext(),h=h_total);
-        #thread_negative_1();
-        //
-        // TODO : add tube hole
-        //
-        translate([0,0,thread_length_1()+2*thread_pitch_1()+slice_thickness()])
-        cylinder(d=d_tube_int(),h=h_tube_cover()+2*thread_pitch_1()+0.1);
-        //
-        //
-        // TODO : check for tube stop (avoid contact between tube and thread)
-        //
-        //
+        cylinder(d=d_ext(),h=female_connect_length());
+        translate([0,0,female_connect_length()])
+        rotate([180,0,0])
+        thread_negative_1();
+        translate([0,0,-0.1])
+        cylinder(d=d_tube_ext(),h=h_tube_cover()+0.1);
+        pin_hole(h_tube_cover()/2);
         if (eclate_generic_connect) {
             translate([0,0,-0.1])
-            cube([d_ext()/2+0.1,d_ext()/2+0.1,h_total+0.2]);
+            cube([d_ext()/2+0.1,d_ext()/2+0.1,female_connect_length()+0.2]);
         }
     }
 }
 
-//color("red")
-//cube([2,2,thread_length_1()]);
-//
-//
-translate([0,0,-10])
-color("blue")
-classic_top();
-//
-//
+function female_connect_length() = thread_length_1()+thread_pitch_1()+slice_thickness()+h_tube_cover();
+
 
 module female_connect_hole() {
-    //
-    female_connect_generic();
-    //
-    //
+    difference() {
+        female_connect_generic();
+        translate([0,0,h_tube_cover()-0.1])
+        cylinder(d=d_tube_int(),h=slice_thickness()+0.2);
+    }
 }
 
 module female_connect_stop() {
-    //
-    //
+    difference() {
+        female_connect_generic();
+        translate([0,0,h_tube_cover()-0.1])
+        cylinder(d=d_stop(),h=slice_thickness()+0.2);
+    }
 }
 
 if (part_show(show_male_connect)) { male_connect(); }
@@ -282,11 +279,50 @@ if (part_show(show_female_connect_stop)) { female_connect_stop(); }
 // COMPOSE TAIL #######################
 
 module compose_tail() {
-    //
-    //
+    if (var_gen_mode == "training") {
+        translate([0,0,male_connect_length()])
+        rotate([180,0,90])
+        color("#afa")
+        male_connect();
+        translate([0,0,male_connect_length()-h_tube_cover()+0.1])
+        tube(var_gen_tube_length);
+        connector_and_tube_length = male_connect_length()+var_gen_tube_length;
+        translate([0,0,connector_and_tube_length+classic_cap_length()-2*h_tube_cover()+0.2])
+        rotate([180,0,90])
+        color("#afa")
+        classic_cap();
+        //
+        // TODO : add pins (two missing)
+        //
+    }
+    else if (var_gen_mode == "led") {
+        //
+        //
+    }
+    else if (var_gen_mode == "esp") {
+        //
+        //
+    }
+    else if (var_gen_mode == "saber") {
+        //
+        //
+    }
 }
 
-function tail_length() = 0;
+function tail_length() =
+    (var_gen_mode == "training")
+    ? male_connect_length()+var_gen_tube_length+classic_cap_length()-2*h_tube_cover()
+    : (var_gen_mode == "led")
+    ? 0
+    : 0
+;
+
+if (compose == "tail") {
+    compose_tail();
+    echo("######## TAIL LENGTH #########");
+    echo(tail_length());
+    echo("##############################");
+}
 
 // NUNCHUK COMPOSE ####################
 
@@ -308,19 +344,28 @@ if (compose == "nunchaku") {
 // STAFF COMPOSE ######################
 
 if (compose == "staff") {
-    //
-    //
+    // central tube for the link
     translate([var_staff_link_length/-2,0,0])
     rotate([0,90,0])
-    tube(var_staff_link_length-2*slice_thickness());
+    tube(var_staff_link_length);
+    // connectors
+    translate([var_staff_link_length/2-h_tube_cover()+0.1,0,0])
+    rotate([90,0,90])
+    female_connect_hole();
+    translate([var_staff_link_length/-2+h_tube_cover()+0.1,0,0])
+    rotate([0,-90,0])
+    female_connect_hole();
+    // tails
     //
-    // TODO : add male connectors
-    //
-    //translate([])
+    translate([var_staff_link_length/2+slice_thickness(),0,0])
+    rotate([90,0,90])
     compose_tail();
     //
     //
+    //compose_tail();
+    //
+    //
     echo("######## TOTAL LENGTH ########");
-    echo("Not calculated yet");
+    echo(var_staff_link_length+2*slice_thickness()+2*tail_length());
     echo("##############################");
 }
