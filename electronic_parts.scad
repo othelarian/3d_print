@@ -23,6 +23,7 @@ module slide_switch() {
             cylinder(d=l_pin,h=e_pin);
         }
     }
+    color("blue")
     difference() {
         union() {
             translate([l_handles/-2,e_total/-2,h_block-e_handles])
@@ -60,6 +61,7 @@ module support_board() {
         translate([e_pin/-2,l_pin/-2,-h_pin])
         cube([e_pin,l_pin,h_pin+0.1]);
     }
+    color("violet")
     union () {
         translate([h_block/-2,l_block/-2,0])
         cube([h_block,l_block,e_block]);
@@ -96,6 +98,7 @@ module esp8266_01() {
         translate([l_pin/-2,l_pin/-2,e_block-s_pin])
         cube([l_pin,l_pin,h_pin]);
     }
+    color("green")
     union() {
         translate([h_block/-2-e_board_block,l_board/-2,e_block])
         cube([h_board,l_board,e_board]);
@@ -119,6 +122,7 @@ module esp8266_01() {
 module battery() {
     d_battery = 17;
     h_battery = 34;
+    color("red")
     cylinder(d=d_battery,h=h_battery);
 }
 
@@ -127,6 +131,7 @@ module shock_sensor() {
     h_sensor = 11;
     l_pin = 0.6;
     h_pin = 2;
+    color("orange")
     union() {
         cylinder(d=d_sensor,h=h_sensor);
         translate([l_pin/-2,l_pin/-2-1,-h_pin])
