@@ -16,9 +16,12 @@ show_male_connect =         false;
 show_female_connect_hole =  false;
 show_female_connect_stop =  false;
 show_electric_stage =       false; // WAIT
-show_electric_connector =   false; // WAIT
-show_classic_leds_support = false; // WAIT
-show_classic_leds_hull =    false; // WAIT
+show_electric_lock =        false; // WAIT
+show_electric_support =     false; // WAIT
+
+
+//show_classic_leds_support = false; // WAIT
+//show_classic_leds_hull =    false; // WAIT
 
 // TODO : esp leds classic support
 
@@ -230,7 +233,7 @@ module male_connect() {
 
 function male_connect_length() = h_tube_cover()+slice_thickness()+thread_length_1();
 
-module female_connect_generic() {
+module female_connect_stop() {
     difference() {
         cylinder(d=d_ext(),h=female_connect_length());
         translate([0,0,female_connect_length()])
@@ -246,24 +249,15 @@ module female_connect_generic() {
     }
 }
 
-function female_connect_length() = thread_length_1()+thread_pitch_1()+slice_thickness()+h_tube_cover();
-
-
 module female_connect_hole() {
     difference() {
-        female_connect_generic();
+        female_connect_stop();
         translate([0,0,h_tube_cover()-0.1])
         cylinder(d=d_tube_int(),h=slice_thickness()+0.2);
     }
 }
 
-module female_connect_stop() {
-    difference() {
-        female_connect_generic();
-        translate([0,0,h_tube_cover()-0.1])
-        cylinder(d=d_stop(),h=slice_thickness()+0.2);
-    }
-}
+function female_connect_length() = thread_length_1()+thread_pitch_1()+slice_thickness()+h_tube_cover();
 
 if (part_show(show_male_connect)) { male_connect(); }
 if (part_show(show_female_connect_hole)) { female_connect_hole(); }
@@ -282,11 +276,17 @@ module electric_stage() {
             // TEST PURPOSE ==========================
             // =======================================
             //
+            difference() {
+                cylinder(d=d_ext(),h=10);
+                thread_negative_1();
+            }
             cylinder(d=18.5,h=20);
+            /*
             translate([0,0,19.9])
             thread_1();
             translate([0,0,19.9+thread_length_1()])
             cylinder(d=d_ext(),h=10);
+            */
             //
         }
         //
