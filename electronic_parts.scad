@@ -49,8 +49,8 @@ module slide_switch() {
 module support_board() {
     h_total = 10.5;
     l_block = 10.7;
-    e_block = 8.5;
-    h_block = 5;
+    h_block = 8.5;
+    e_block = 5;
     l_pin = 0.6;
     e_pin = 0.3;
     h_pin = h_total-h_block;
@@ -63,8 +63,8 @@ module support_board() {
     }
     color("violet")
     union () {
-        translate([h_block/-2,l_block/-2,0])
-        cube([h_block,l_block,e_block]);
+        translate([e_block/-2,l_block/-2,0])
+        cube([e_block,l_block,h_block]);
         translate([e_h_pins/-2+e_pin/2,0,0]) {
             translate([0,e_l_pins/-2+l_pin/2,0]) support_board_pins();
             translate([0,e_calc_l_pins/-2,0]) support_board_pins();

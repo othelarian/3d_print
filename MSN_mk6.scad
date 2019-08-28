@@ -11,34 +11,25 @@ show_pin =                  false;
 show_classic_top =          false;
 show_magnet_top =           false;
 show_classic_cap =          false;
-show_electric_cap =         false; // WAIT
 show_male_connect =         false;
 show_female_connect_hole =  false;
 show_female_connect_stop =  false;
-show_electric_stage =       false; // WAIT
-show_electric_lock =        false; // WAIT
-show_electric_support =     false; // WAIT
 
+show_electric_cap =         false; // WAIT
+show_electric_stage =       false; // WIP
+show_electric_lock =        false; // WIP
 
-//show_classic_leds_support = false; // WAIT
-//show_classic_leds_hull =    false; // WAIT
-
-// TODO : esp leds classic support
-
-//show_esp_leds_support =     false; // WAIT
-
-// TODO : esp leds saber hilt support
-
-//show_saber_support =
+show_leds_support =         false; // WAIT
+show_leds_hull =            false; // WAIT
 
 /* [Eclate] */
 
 eclate_generic_top =        false;
 eclate_classic_cap =        false;
-
-//eclate_electric_cap =       false;
-
 eclate_generic_connect =    false;
+
+eclate_electric_cap =       false;
+eclate_electric_stage =     false;
 
 /* [Variations: Generic] */
 
@@ -54,7 +45,7 @@ var_nun_storage_length =    80; // [30:300]
 
 /* [Variations: Staff] */
 
-var_staff_link_length =     200; // [30:500]
+var_staff_link_length =     250; // [30:500]
 
 // ####################################
 // MODULES ############################
@@ -82,6 +73,7 @@ function d_pin_top() = 2;
 function h_pin_top() = 3;
 function d_stop() = 8;
 function slice_thickness() = 1.2;
+
 function thread_radius_1() = 10;
 function thread_length_1() = 8;
 function thread_pitch_1() = 2.4;
@@ -89,6 +81,13 @@ function h_th_correction() = 10.2;
 function d_th_correction() = 17.4;
 
 function d_electric_stage() = 18.5;
+function d_electric_ring() = 22;
+function v_support_board() = -2;
+function l_support_board() = 11.4; // real length: 10.7
+function h_support_board() = 6; // real height: 8.5
+function t_support_board() = 5.8; // real thickness: 5
+function d_battery() = 17;
+function h_battery() = 38;
 
 // ####################################
 // HELPERS ############################
@@ -105,9 +104,9 @@ module tube(h_tube) {
     }
 }
 
-module thread_1() {
+module thread_1(double = false) {
     trapezoidThread(
-        length=thread_length_1(),
+        length=thread_length_1()*(double? 2 : 1),
         pitch=thread_pitch_1(),
         pitchRadius=thread_radius_1(),
         stepsPerTurn=$fn
@@ -200,14 +199,7 @@ module classic_cap() {
 
 function classic_cap_length() = h_tube_cover()+3*slice_thickness();
 
-module electric_cap() {
-    //
-    //
-    //
-}
-
 if (part_show(show_classic_cap)) { classic_cap(); }
-if (part_show(show_electric_cap)) { electric_cap(); }
 
 // CONNECTORS #########################
 
@@ -263,58 +255,133 @@ if (part_show(show_male_connect)) { male_connect(); }
 if (part_show(show_female_connect_hole)) { female_connect_hole(); }
 if (part_show(show_female_connect_stop)) { female_connect_stop(); }
 
-// ELECTRIC STAGE #####################
+// ELECTRIC PARTS #####################
+
+module electric_cap() {
+    difference() {
+        union() {
+            //
+            // TODO : chamfered base
+            // TODO : main block
+            //
+        }
+        //
+        // TODO : switch hole
+        // TODO : cap locking hole
+        // TODO : threaded zone
+        // TODO : slick zone
+        //
+    }
+}
+
+function electric_cap_length() = 0;
 
 module electric_stage() {
     difference() {
         union() {
-            //
-            // TODO : basic cylindric shape
-            // TODO : stop ring
-            // TODO : support board casing
-            //
-            // TEST PURPOSE ==========================
-            // =======================================
-            //
-            difference() {
-                cylinder(d=d_ext(),h=10);
-                thread_negative_1();
-            }
-            cylinder(d=18.5,h=20);
-            /*
-            translate([0,0,19.9])
-            thread_1();
-            translate([0,0,19.9+thread_length_1()])
-            cylinder(d=d_ext(),h=10);
-            */
-            //
+            translate([
+                h_support_board()/-2+v_support_board(),
+                l_support_board()/-2-slice_thickness(),
+                0
+            ])
+            cube([
+                h_support_board(),
+                l_support_board()+2*slice_thickness(),
+                t_support_board()+4*slice_thickness()+0.1
+            ]);
+            translate([0,0,t_support_board()+4*slice_thickness()])
+            cylinder(d=d_electric_ring(),slice_thickness());
+            translate([0,0,t_support_board()+5*slice_thickness()-0.1])
+            cylinder(d=d_tube_ext(),h=h_battery()-2*thread_length_1()+0.1);
+            translate([0,0,t_support_board()+5*slice_thickness()+h_battery()-2*thread_length_1()])
+            thread_1(true);
         }
+        translate([h_support_board()/-2+v_support_board()-0.1,l_support_board()/-2,slice_thickness()])
+        cube([h_support_board()+0.2,l_support_board(),t_support_board()]);
+        //
+        // TODO : hole for - plate
         //
         //
+        // TODO : wire well
+        //
+        //
+        translate([0,0,t_support_board()+5*slice_thickness()-0.1])
+        cylinder(d=d_battery(),h=h_battery()+0.2);
+        //
+        // TODO : switch lock guide
+        //
+        //
+        if (eclate_electric_stage) {
+            translate([0,0,t_support_board()+4*slice_thickness()-0.1])
+            cube([d_ext()/2,d_ext()/2,h_battery()+slice_thickness()+0.2]);
+        }
     }
     if (var_show_electric_parts) {
-        translate([0,0,5]) rotate([180,0,0]) slide_switch();
-        //
-        translate([-30,30,0])
-        support_board();
-        //
-        translate([-30,0,0])
+        translate([-2,0,0]) {
+            translate([-5,0,slice_thickness()+t_support_board()/2])
+            rotate([0,90,0])
+            support_board();
+            translate([4,0,slice_thickness()+t_support_board()/2])
+            rotate([0,90,0])
+            esp8266_01();
+            translate([0,0,-2])
+            rotate([0,180,0])
+            shock_sensor();
+        }
+        translate([0,0,t_support_board()+6*slice_thickness()+0.1])
         battery();
-        //
-        // TEST PURPOSE ==========================
-        // =======================================
-        translate([0,30,0])
-        shock_sensor();
-        //
-        translate([0,40,0])
-        esp8266_01();
-        //
     }
 }
 
 function electric_stage_length() = 0;
 
+module electric_lock() {
+    difference() {
+        union() {
+            //
+            // TODO : plain base (top)
+            //
+            cylinder(d=d_electric_stage(),h=      10       );
+            //
+            // TODO : intersection for the switch lock guide?
+            //
+        }
+        //
+        // TODO : radial cut
+        // TODO : switch casing hole
+        // TODO : switch handles cut
+        // TODO : plate pin hole
+        // TODO : wire cut
+        //
+    }
+    if (var_show_electric_parts) { translate([0,0,5]) rotate([180,0,0]) slide_switch(); }
+}
+
+function electric_lock_length() = 0;
+
+if (part_show(show_electric_cap)) { electric_cap(); }
 if (part_show(show_electric_stage)) { electric_stage(); }
+if (part_show(show_electric_lock)) { electric_lock(); }
+
+// LEDS PARTS #########################
+
+module leds_support() {
+    //
+    //
+}
+
+function leds_support_length() = 0;
+
+module leds_hull() {
+    //
+    //
+    //
+}
+
+function leds_hull_length() = 0;
+
+if (part_show(show_leds_support)) { leds_support(); }
+if (part_show(show_leds_hull)) { leds_hull(); }
 
 // ####################################
 // COMPOSE ############################
