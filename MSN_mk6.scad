@@ -30,6 +30,7 @@ eclate_generic_connect =    false;
 
 eclate_electric_cap =       false;
 eclate_electric_stage =     false;
+eclate_electric_lock =      false;
 
 /* [Variations: Generic] */
 
@@ -88,6 +89,18 @@ function h_support_board() = 6; // real height: 8.5
 function t_support_board() = 5.8; // real thickness: 5
 function d_battery() = 17;
 function h_battery() = 38;
+function l_plate_pin() = 4;
+function h_plate_pin() = 1;
+function t_wire_well() = 1.6;
+function v_wire_well() = -10.6;
+function h_lock_guide() = 6;
+function t_lock_guide() = 6;
+//
+function h_lock() = 10;
+//
+function t_handles() = 0.5;
+function h_handles() = 6;
+//
 
 // ####################################
 // HELPERS ############################
@@ -290,27 +303,30 @@ module electric_stage() {
                 t_support_board()+4*slice_thickness()+0.1
             ]);
             translate([0,0,t_support_board()+4*slice_thickness()])
-            cylinder(d=d_electric_ring(),slice_thickness());
-            translate([0,0,t_support_board()+5*slice_thickness()-0.1])
-            cylinder(d=d_tube_ext(),h=h_battery()-2*thread_length_1()+0.1);
+            cylinder(d=d_tube_ext(),h=h_battery()+slice_thickness()-2*thread_length_1()+0.1);
             translate([0,0,t_support_board()+5*slice_thickness()+h_battery()-2*thread_length_1()])
             thread_1(true);
         }
         translate([h_support_board()/-2+v_support_board()-0.1,l_support_board()/-2,slice_thickness()])
         cube([h_support_board()+0.2,l_support_board(),t_support_board()]);
-        //
-        // TODO : hole for - plate
-        //
-        //
-        // TODO : wire well
-        //
-        //
+        translate([
+            l_plate_pin()/-2,
+            l_support_board()/2+slice_thickness(),
+            t_support_board()+4*slice_thickness()-0.1
+        ])
+        cube([l_plate_pin(),h_plate_pin(),slice_thickness()+0.2]);
+        translate([t_wire_well()/-2,v_wire_well(),t_support_board()+4*slice_thickness()-0.1])
+        cube([t_wire_well(),1.5*t_wire_well(),h_battery()+slice_thickness()+0.2]);
         translate([0,0,t_support_board()+5*slice_thickness()-0.1])
         cylinder(d=d_battery(),h=h_battery()+0.2);
-        //
-        // TODO : switch lock guide
-        //
-        //
+        translate([t_lock_guide()/-2,0,h_battery()+10*slice_thickness()-h_lock_guide()])
+        cube([t_lock_guide(),d_ext()/2,h_lock_guide()+0.1]);
+        translate([0,0,t_support_board()+8*slice_thickness()])
+        difference() {
+            cylinder(d=d_tube_ext()+0.1,h=2*slice_thickness());
+            translate([0,0,-0.1])
+            cylinder(d=d_tube_ext()-slice_thickness(),h=2*slice_thickness()+0.2);
+        }
         if (eclate_electric_stage) {
             translate([0,0,t_support_board()+4*slice_thickness()-0.1])
             cube([d_ext()/2,d_ext()/2,h_battery()+slice_thickness()+0.2]);
@@ -341,20 +357,40 @@ module electric_lock() {
             //
             // TODO : plain base (top)
             //
-            cylinder(d=d_electric_stage(),h=      10       );
+            cylinder(d=d_electric_stage(),h=h_lock());
+            //
+            /*
+    e_plaque_interrupteur = 0.6; // 0.2 de marge
+    e_interrupteur = 6.2; // idem, 0.4 (0.2*2) de marge
+    l_interrupteur = 11.2; // 0.5 de marge
+            */
             //
             // TODO : intersection for the switch lock guide?
+            //
             //
         }
         //
         // TODO : radial cut
         // TODO : switch casing hole
-        // TODO : switch handles cut
+        //
+        //
+        //
+        translate([h_handles()/-2,d_electric_stage()/-2,-0.1])
+        cube([h_handles(),d_electric_stage(),t_handles()+0.1]);
+        //
         // TODO : plate pin hole
         // TODO : wire cut
         //
+        //
+        if (eclate_electric_lock) {
+            //
+            translate([0,0,-0.1])
+            cube([d_ext()/2+0.1,d_ext()/2+0.1,h_lock()                +0.2]);
+            //
+        }
+        //
     }
-    if (var_show_electric_parts) { translate([0,0,5]) rotate([180,0,0]) slide_switch(); }
+    if (var_show_electric_parts) { translate([0,0,5]) rotate([0,180,90]) slide_switch(); }
 }
 
 function electric_lock_length() = 0;

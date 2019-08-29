@@ -50,7 +50,7 @@ difference() {
     )
     cube([h_espacement()+0.2,l_plaque(),h_plaque()+0.1]); // passage plaque du deuxième bord
     translate([h_bord()-0.1,d_ext()/2-h_ecart_passage(),-0.1])
-    cube([h_batterie()+h_espacement()*2+0.2,h_passage(),h_passage()+0.1]); // passage du cable
+    #cube([h_batterie()+h_espacement()*2+0.2,h_passage(),h_passage()+0.1]); // passage du cable
     translate([h_socle()/2,(d_ext()+d_ouverture())/2,-0.1]) { // ouverture pour pousser la batterie
         translate([h_ouverture()/-2,0,0])
         cylinder(d=d_ouverture(),h=d_ext()/2);
