@@ -18,6 +18,7 @@ show_female_connect_stop =  false;
 show_electric_cap =         false; // WAIT
 show_electric_stage =       false; // WIP
 show_electric_lock =        false; // WIP
+show_electric_switch =      false; // WIP
 
 show_leds_support =         false; // WAIT
 show_leds_hull =            false; // WAIT
@@ -30,12 +31,12 @@ eclate_generic_connect =    false;
 
 eclate_electric_cap =       false;
 eclate_electric_stage =     false;
-eclate_electric_lock =      false;
+//eclate_electric_lock =      false;
 
 /* [Variations: Generic] */
 
 var_gen_tube_length =       200; // [30:400]
-var_gen_mode =              "training"; // ["training", "led", "esp", "saber"]
+var_gen_mode =              "training"; // ["training", "esp", "saber", "none"]
 var_show_electric_parts =   false;
 var_show_esp =              false;
 
@@ -74,6 +75,7 @@ function d_pin_top() = 2;
 function h_pin_top() = 3;
 function d_stop() = 8;
 function slice_thickness() = 1.2;
+function v_gap() = 0.8;
 
 function thread_radius_1() = 10;
 function thread_length_1() = 8;
@@ -85,8 +87,8 @@ function d_electric_stage() = 18.5;
 function d_electric_ring() = 22;
 function v_support_board() = -2;
 function l_support_board() = 11.4; // real length: 10.7
-function h_support_board() = 6; // real height: 8.5
-function t_support_board() = 5.8; // real thickness: 5
+function t_support_board() = 6; // real height / thickness: 8.5
+function h_support_board() = 5.8; // real thickness / height: 5
 function d_battery() = 17;
 function h_battery() = 38;
 function l_plate_pin() = 4;
@@ -293,65 +295,96 @@ module electric_stage() {
     difference() {
         union() {
             translate([
-                h_support_board()/-2+v_support_board(),
+                t_support_board()/-2+v_support_board(),
                 l_support_board()/-2-slice_thickness(),
                 0
             ])
             cube([
-                h_support_board(),
-                l_support_board()+2*slice_thickness(),
-                t_support_board()+4*slice_thickness()+0.1
+                t_support_board(), //h
+                l_support_board()+2*slice_thickness(), //l
+                h_support_board()+4*slice_thickness()+0.1 //t
             ]);
-            translate([0,0,t_support_board()+4*slice_thickness()])
-            cylinder(d=d_tube_ext(),h=h_battery()+slice_thickness()-2*thread_length_1()+0.1);
-            translate([0,0,t_support_board()+5*slice_thickness()+h_battery()-2*thread_length_1()])
-            thread_1(true);
+            //
+            s_tube_length = h_battery()+2*slice_thickness()-thread_length_1();
+            //
+            translate([0,0,h_support_board()+4*slice_thickness()])
+            cylinder(d=d_tube_ext(),h=s_tube_length       -15         +0.1);
+            //
+            //
+            translate([0,0,h_support_board()+4*slice_thickness()+s_tube_length     -15    ])
+            cylinder(d=d_ext(),h=     15      );
+            //
+            //
+            translate([0,0,h_support_board()+6*slice_thickness()+h_battery()-thread_length_1()])
+            thread_1();
         }
-        translate([h_support_board()/-2+v_support_board()-0.1,l_support_board()/-2,slice_thickness()])
-        cube([h_support_board()+0.2,l_support_board(),t_support_board()]);
+        translate([t_support_board()/-2+v_support_board()-0.1,l_support_board()/-2,slice_thickness()])
+        cube([t_support_board()+0.2,l_support_board(),h_support_board()]);
         translate([
             l_plate_pin()/-2,
             l_support_board()/2+slice_thickness(),
-            t_support_board()+4*slice_thickness()-0.1
+            h_support_board()+4*slice_thickness()-0.1
         ])
         cube([l_plate_pin(),h_plate_pin(),slice_thickness()+0.2]);
-        translate([t_wire_well()/-2,v_wire_well(),t_support_board()+4*slice_thickness()-0.1])
-        cube([t_wire_well(),1.5*t_wire_well(),h_battery()+slice_thickness()+0.2]);
-        translate([0,0,t_support_board()+5*slice_thickness()-0.1])
-        cylinder(d=d_battery(),h=h_battery()+0.2);
-        translate([t_lock_guide()/-2,0,h_battery()+10*slice_thickness()-h_lock_guide()])
+        translate([t_wire_well()/-2,v_wire_well(),h_support_board()+4*slice_thickness()-0.1])
+        cube([t_wire_well(),1.5*t_wire_well(),h_battery()+2*slice_thickness()+0.2]);
+        translate([0,0,h_support_board()+5*slice_thickness()-0.1])
+        cylinder(d=d_battery(),h=h_battery()+slice_thickness()+0.2);
+        translate([t_lock_guide()/-2,0,h_battery()+11*slice_thickness()-h_lock_guide()])
         cube([t_lock_guide(),d_ext()/2,h_lock_guide()+0.1]);
-        translate([0,0,t_support_board()+8*slice_thickness()])
+        translate([0,0,h_support_board()+8*slice_thickness()])
         difference() {
             cylinder(d=d_tube_ext()+0.1,h=2*slice_thickness());
             translate([0,0,-0.1])
             cylinder(d=d_tube_ext()-slice_thickness(),h=2*slice_thickness()+0.2);
         }
         if (eclate_electric_stage) {
-            translate([0,0,t_support_board()+4*slice_thickness()-0.1])
-            cube([d_ext()/2,d_ext()/2,h_battery()+slice_thickness()+0.2]);
+            translate([0,0,h_support_board()+4*slice_thickness()-0.1])
+            cube([d_ext()/2,d_ext()/2,h_battery()+2*slice_thickness()+0.2]);
         }
     }
     if (var_show_electric_parts) {
         translate([-2,0,0]) {
-            translate([-5,0,slice_thickness()+t_support_board()/2])
+            translate([-5,0,slice_thickness()+h_support_board()/2])
             rotate([0,90,0])
             support_board();
-            translate([4,0,slice_thickness()+t_support_board()/2])
+            translate([4,0,slice_thickness()+h_support_board()/2])
             rotate([0,90,0])
             esp8266_01();
             translate([0,0,-2])
             rotate([0,180,0])
             shock_sensor();
         }
-        translate([0,0,t_support_board()+6*slice_thickness()+0.1])
+        translate([0,0,h_support_board()+6*slice_thickness()+0.1])
         battery();
     }
 }
 
-function electric_stage_length() = 0;
+function electric_stage_length() = h_support_board()+6*slice_thickness()+h_battery();
 
 module electric_lock() {
+    s_t_lock_guide = t_lock_guide()-v_gap();
+    s_d_electric_stage = d_electric_stage()-v_gap();
+    difference() {
+        union() {
+            cylinder(d=s_d_electric_stage-slice_thickness(),h=slice_thickness());
+            intersection() {
+                cylinder(d=d_electric_stage(),h=h_lock_guide());
+                translate([s_t_lock_guide/-2,0,0])
+                cube([s_t_lock_guide,d_electric_stage(),h_lock_guide()-v_gap()]);
+            }
+        }
+        translate([0,0,slice_thickness()])
+        cylinder(d=d_electric_stage()-slice_thickness(),h=h_lock_guide()-slice_thickness()+0.1);
+        translate([l_plate_pin()/-2,(s_d_electric_stage-slice_thickness())/-2,-0.1])
+        cube([l_plate_pin(),h_plate_pin(),slice_thickness()+0.2]);
+    }
+}
+
+function electric_lock_length() = h_lock_guide();
+
+module electric_switch() {
+
     difference() {
         union() {
             //
@@ -393,11 +426,12 @@ module electric_lock() {
     if (var_show_electric_parts) { translate([0,0,5]) rotate([0,180,90]) slide_switch(); }
 }
 
-function electric_lock_length() = 0;
+function electric_switch_length() = 0;
 
 if (part_show(show_electric_cap)) { electric_cap(); }
 if (part_show(show_electric_stage)) { electric_stage(); }
 if (part_show(show_electric_lock)) { electric_lock(); }
+if (part_show(show_electric_switch)) { electric_switch(); }
 
 // LEDS PARTS #########################
 
@@ -447,12 +481,23 @@ module compose_tail() {
         color("#aaf")
         pin();
     }
-    else if (var_gen_mode == "led") {
-        //
-        //
-    }
     else if (var_gen_mode == "esp") {
+        electric_lock();
         //
+        translate([0,0,electric_stage_length()])
+        rotate([180,0,180])
+        electric_stage();
+        //
+        //
+        // ==========================
+        // TEST PURPOSE =============
+        // ==========================
+        //
+        translate([0,0,-h_tube_cover()-slice_thickness()-0.1])
+        female_connect_hole();
+        //
+        translate([0,30,-h_tube_cover()-slice_thickness()-0.1])
+        male_connect();
         //
     }
     else if (var_gen_mode == "saber") {
@@ -464,7 +509,9 @@ module compose_tail() {
 function tail_length() =
     (var_gen_mode == "training")
     ? male_connect_length()+var_gen_tube_length+classic_cap_length()-2*h_tube_cover()
-    : (var_gen_mode == "led")
+    : (var_gen_mode == "esp")
+    ? 0
+    : (var_gen_mode == "saber")
     ? 0
     : 0
 ;
