@@ -2,52 +2,43 @@
 // INPUTS #############################
 // ####################################
 
-compose =                   "none"; // ["none", "tail", "nunchaku", "staff"]
+compose =                   "none"; // ["none", "single part", "tail", "nunchaku", "staff"]
 $fn =                       16; // 100~150
-
-/* [Separate show] */
-
-show_pin =                  false;
-show_classic_top =          false;
-show_magnet_top =           false;
-show_classic_cap =          false;
-show_male_connect =         false;
-show_female_connect_hole =  false;
-show_female_connect_stop =  false;
-
-show_electric_cap =         false; // WAIT
-show_electric_stage =       false; // WIP
-show_electric_lock =        false; // WIP
-show_electric_switch =      false; // WIP
-
-show_leds_support =         false; // WAIT
-show_leds_hull =            false; // WAIT
-
-/* [Eclate] */
-
-eclate_generic_top =        false;
-eclate_classic_cap =        false;
-eclate_generic_connect =    false;
-
-eclate_electric_cap =       false;
-eclate_electric_stage =     false;
-//eclate_electric_lock =      false;
 
 /* [Variations: Generic] */
 
-var_gen_tube_length =       200; // [30:400]
-var_gen_mode =              "training"; // ["training", "esp", "saber", "none"]
-var_show_electric_parts =   false;
-var_show_esp =              false;
+var_tail_tube_length =      200; // [30:400]
+var_exterior_thickness =    24; // [24:30]
+var_tail_mode =             "training"; // ["training", "esp", "saber", "none"]
+var_selected_part =         "pin"; // ["pin", "classic top", "magnetic top", "cap", "connector", "electric"]
+var_connector_type =        "male"; // ["male", "female hole", "female stop", "double male", "male female stop", "male female hole", "double female stop", "double female hole"]
+var_connector_pin_holes =   0; // [0:2]
+var_show_electronics =      false;
 
 /* [Variations: Nunchaku] */
 
 var_nun_link =              "classic"; // ["classic", "magnetic"]
 var_nun_storage_length =    80; // [30:300]
+var_nun_magnetic =          false;
 
 /* [Variations: Staff] */
 
 var_staff_link_length =     250; // [30:500]
+
+/* [Variations: Electric] */
+
+var_electric_part =         "rope storage"; // ["rope storage", "cap", "battery stage", "lock", "leds support", "leds hull (right)", "leds hull (left)"]
+
+/* [Eclate] */
+
+eclate_top =                false;
+eclate_classic_cap =        false;
+eclate_connect =            false;
+
+eclate_electric_rope =      false;
+eclate_electric_cap =       false;
+eclate_electric_stage =     false;
+//eclate_electric_lock =      false;
 
 // ####################################
 // MODULES ############################
@@ -60,7 +51,7 @@ include <electronic_parts.scad>
 // GLOBAL PARAMETERS ##################
 // ####################################
 
-function d_ext() = 24;
+function d_ext() = var_exterior_thickness;
 function d_tube_ext() = 20.6;
 function d_tube_int() = 16;
 function h_tube_cover() = 15;
@@ -72,7 +63,7 @@ function h_magnet() = 7;
 function d_pin_base() = 4;
 function h_pin_base() = 0.8;
 function d_pin_top() = 2;
-function h_pin_top() = 3;
+function h_pin_top() = (d_ext()-d_tube_int())/2-h_pin_base();
 function d_stop() = 8;
 function slice_thickness() = 1.2;
 function v_gap() = 0.8;
@@ -83,6 +74,8 @@ function thread_pitch_1() = 2.4;
 function h_th_correction() = 10.2;
 function d_th_correction() = 17.4;
 
+function h_ers_in_tube() = 50;
+function v_ers_d() = 0.8;
 function d_electric_stage() = 18.5;
 function d_electric_ring() = 22;
 function v_support_board() = -2;
@@ -138,8 +131,18 @@ module thread_negative_1() {
     cylinder(d=d_th_correction(),h=h_th_correction(),center=false); // thread correction
 }
 
-module pin_hole(h_hole) {
-    translate([d_ext()/2,0,h_hole]) rotate([0,-90,0]) scale([1.2,1.2,1]) pin();
+module pin_hole(h_hole,inverse = false) {
+    translate([d_ext()/((inverse)? -2 : 2),0,h_hole])
+    rotate([0,90*((inverse)? 1 : -1),0])
+    scale([1.2,1.2,1])
+    pin();
+}
+
+module pin_holes(h_hole) {
+    if (var_connector_pin_holes >= 1) {
+        pin_hole(h_hole);
+        if (var_connector_pin_holes == 2) { pin_hole(h_hole,true); }
+    }
 }
 
 // ####################################
@@ -156,8 +159,6 @@ module pin() {
     }
 }
 
-if (part_show(show_pin)) { pin(); }
-
 // TOPS ###############################
 
 module classic_top() {
@@ -172,7 +173,7 @@ module classic_top() {
         cylinder(d=d_intern(),h=generic_top_length()-h_rope_stop+0.1); // intern hole
         translate([0,0,-0.1])
         cylinder(d=d_rope(),h=h_rope_stop+0.2); // rope hole
-        if (eclate_generic_top) {
+        if (eclate_top) {
             translate([0,0,-0.1])
             cube([d_ext()/2+0.1,d_ext()/2+0.1,generic_top_length()+0.2]);
         }
@@ -189,9 +190,6 @@ module magnet_top() {
 
 function generic_top_length() = h_top()+thread_length_1();
 
-if (part_show(show_classic_top)) { classic_top(); }
-if (part_show(show_magnet_top)) { magnet_top(); }
-
 // CAPS ###############################
 
 module classic_cap() {
@@ -204,7 +202,7 @@ module classic_cap() {
         }
         translate([0,0,t_top_cap+slice_thickness()])
         cylinder(d=d_tube_ext(),h=h_tube_cover()+0.1);
-        pin_hole(3*slice_thickness()+h_tube_cover()/2);
+        pin_holes(3*slice_thickness()+h_tube_cover()/2);
         if (eclate_classic_cap) {
             translate([0,0,-0.1])
             cube([d_ext()/2+0.1,d_ext()/2+0.1,3*slice_thickness()+h_tube_cover()+0.2]);
@@ -213,8 +211,6 @@ module classic_cap() {
 }
 
 function classic_cap_length() = h_tube_cover()+3*slice_thickness();
-
-if (part_show(show_classic_cap)) { classic_cap(); }
 
 // CONNECTORS #########################
 
@@ -229,8 +225,8 @@ module male_connect() {
         cylinder(d=d_tube_ext(),h=h_tube_cover()+0.1);
         translate([0,0,h_tube_cover()-0.1])
         cylinder(d=d_intern(),h=thread_length_1()+slice_thickness()+0.2);
-        pin_hole(h_tube_cover()/2);
-        if (eclate_generic_connect) {
+        pin_holes(h_tube_cover()/2);
+        if (eclate_connect) {
             total_length = h_tube_cover()+slice_thickness()+thread_length_1();
             translate([0,0,-0.1])
             cube([d_ext()/2+0.1,d_ext()/2+0.1,total_length+0.2]);
@@ -248,8 +244,8 @@ module female_connect_stop() {
         thread_negative_1();
         translate([0,0,-0.1])
         cylinder(d=d_tube_ext(),h=h_tube_cover()+0.1);
-        pin_hole(h_tube_cover()/2);
-        if (eclate_generic_connect) {
+        pin_holes(h_tube_cover()/2);
+        if (eclate_connect) {
             translate([0,0,-0.1])
             cube([d_ext()/2+0.1,d_ext()/2+0.1,female_connect_length()+0.2]);
         }
@@ -260,17 +256,114 @@ module female_connect_hole() {
     difference() {
         female_connect_stop();
         translate([0,0,h_tube_cover()-0.1])
-        cylinder(d=d_tube_int(),h=slice_thickness()+0.2);
+        cylinder(d=d_intern(),h=slice_thickness()+0.2);
     }
 }
 
 function female_connect_length() = thread_length_1()+thread_pitch_1()+slice_thickness()+h_tube_cover();
 
-if (part_show(show_male_connect)) { male_connect(); }
-if (part_show(show_female_connect_hole)) { female_connect_hole(); }
-if (part_show(show_female_connect_stop)) { female_connect_stop(); }
+module double_male_connect() {
+    difference() {
+        union() {
+            thread_1();
+            translate([0,0,thread_length_1()-0.1])
+            cylinder(d=d_ext(),h=slice_thickness()+0.2);
+            translate([0,0,thread_length_1()+slice_thickness()])
+            thread_1();
+        }
+        translate([0,0,-0.1])
+        cylinder(d=d_intern(),h=double_male_connect_length()+0.2);
+        if (eclate_connect) {
+            translate([0,0,-0.1])
+            cube([d_ext()/2+0.1,d_ext()/2+0.1,double_male_connect_length()+0.2]);
+        }
+    }
+}
+
+function double_male_connect_length() = slice_thickness()+2*thread_length_1();
+
+module male_female_connect_stop() {
+    difference() {
+        union() {
+            cylinder(d=d_ext(),h=thread_length_1()+thread_pitch_1()+slice_thickness()+0.2);
+            translate([0,0,thread_length_1()+thread_pitch_1()+slice_thickness()])
+            thread_1();
+        }
+        thread_negative_1();
+        translate([0,0,thread_length_1()+thread_pitch_1()+slice_thickness()])
+        cylinder(d=d_intern(),h=thread_length_1()+0.1);
+        if (eclate_connect) {
+            translate([0,0,-0.1])
+            cube([d_ext()/2+0.1,d_ext()/2+0.1,male_female_connect_length()+0.2]);
+        }
+    }
+}
+
+module male_female_connect_hole() {
+    difference() {
+        male_female_connect_stop();
+        translate([0,0,thread_length_1()+thread_pitch_1()-0.1])
+        cylinder(d=d_intern(),h=slice_thickness()+0.2);
+    }
+}
+
+function male_female_connect_length() = 2*thread_length_1()+thread_pitch_1()+slice_thickness();
+
+module double_female_connect_stop() {
+    difference() {
+        cylinder(d=d_ext(),h=double_female_connect_length());
+        thread_negative_1();
+        translate([0,0,double_female_connect_length()])
+        rotate([180,0,0])
+        thread_negative_1();
+        if (eclate_connect) {
+            translate([0,0,-0.1])
+            cube([d_ext()/2+0.1, d_ext()/2+0.1,double_female_connect_length()+0.2]);
+        }
+    }
+}
+
+module double_female_connect_hole() {
+    difference() {
+        double_female_connect_stop();
+        translate([0,0,thread_length_1()+thread_pitch_1()-0.1])
+        cylinder(d=d_intern(),h=slice_thickness()+0.2);
+    }
+}
+
+function double_female_connect_length() = 2*(thread_length_1()+thread_pitch_1())+slice_thickness();
 
 // ELECTRIC PARTS #####################
+
+module electric_rope_storage() {
+    h_female_connector = thread_length_1()+thread_pitch_1()+3*slice_thickness();
+    difference() {
+        union() {
+            cylinder(d=d_ext(),h=h_female_connector);
+            translate([0,0,h_female_connector-0.1])
+            cylinder(d=d_ext()-v_ers_d(),h=h_ers_in_tube()+0.2);
+            translate([0,0,h_female_connector+h_ers_in_tube()])
+            cylinder(d=d_ext(),h=h_female_connector);
+        }
+        thread_negative_1();
+        translate([0,0,electric_rope_storage_length()])
+        rotate([0,180,0])
+        thread_negative_1();
+        //
+        // TODO : pass through cut
+        //
+        translate([0,0,])
+        cylinder(d=d_intern(),h=);
+        //
+        if (eclate_electric_rope) {
+            translate([0,0,-0.1])
+            cube([d_ext()/2+0.1,d_ext()/2+0.1,electric_rope_storage_length()+0.2]);
+        }
+    }
+}
+
+function electric_rope_storage_length() =
+    2*(thread_length_1()+thread_pitch_1()+3*slice_thickness())+h_ers_in_tube();
 
 module electric_cap() {
     difference() {
@@ -315,7 +408,7 @@ module electric_stage() {
             cylinder(d=d_ext(),h=     15      );
             //
             //
-            translate([0,0,h_support_board()+6*slice_thickness()+h_battery()-thread_length_1()])
+            translate([0,0,h_support_board()+4*slice_thickness()+s_tube_length])
             thread_1();
         }
         translate([t_support_board()/-2+v_support_board()-0.1,l_support_board()/-2,slice_thickness()])
@@ -384,7 +477,6 @@ module electric_lock() {
 function electric_lock_length() = h_lock_guide();
 
 module electric_switch() {
-
     difference() {
         union() {
             //
@@ -428,11 +520,6 @@ module electric_switch() {
 
 function electric_switch_length() = 0;
 
-if (part_show(show_electric_cap)) { electric_cap(); }
-if (part_show(show_electric_stage)) { electric_stage(); }
-if (part_show(show_electric_lock)) { electric_lock(); }
-if (part_show(show_electric_switch)) { electric_switch(); }
-
 // LEDS PARTS #########################
 
 module leds_support() {
@@ -442,16 +529,19 @@ module leds_support() {
 
 function leds_support_length() = 0;
 
-module leds_hull() {
+module leds_hull_right() {
+    //
+    //
+    //
+}
+
+module leds_hull_left() {
     //
     //
     //
 }
 
 function leds_hull_length() = 0;
-
-if (part_show(show_leds_support)) { leds_support(); }
-if (part_show(show_leds_hull)) { leds_hull(); }
 
 // ####################################
 // COMPOSE ############################
@@ -460,19 +550,18 @@ if (part_show(show_leds_hull)) { leds_hull(); }
 // COMPOSE TAIL #######################
 
 module compose_tail() {
-    if (var_gen_mode == "training") {
-        translate([0,0,male_connect_length()])
-        rotate([180,0,90])
-        color("#afa")
-        male_connect();
-        translate([0,0,male_connect_length()-h_tube_cover()+0.1])
-        tube(var_gen_tube_length);
-        connector_and_tube_length = male_connect_length()+var_gen_tube_length;
+    if (var_tail_mode == "training") {
+        translate([0,0,female_connect_length()])
+        rotate([0,180,-90])
+        female_connect_hole();
+        translate([0,0,female_connect_length()-h_tube_cover()+0.1])
+        tube(var_tail_tube_length);
+        connector_and_tube_length = female_connect_length()+var_tail_tube_length;
         translate([0,0,connector_and_tube_length+classic_cap_length()-2*h_tube_cover()+0.2])
         rotate([180,0,90])
         color("#afa")
         classic_cap();
-        translate([0,d_ext()/2,thread_length_1()+slice_thickness()+h_tube_cover()/2])
+        translate([0,d_ext()/2,thread_length_1()+thread_pitch_1()+slice_thickness()+h_tube_cover()/2])
         rotate([90,0,0])
         color("#aaf")
         pin();
@@ -481,88 +570,61 @@ module compose_tail() {
         color("#aaf")
         pin();
     }
-    else if (var_gen_mode == "esp") {
-        electric_lock();
+    else if (var_tail_mode == "esp") {
         //
-        translate([0,0,electric_stage_length()])
-        rotate([180,0,180])
-        electric_stage();
+        electric_rope_storage();
+        //
+        //electric_lock();
+        //
+        //translate([0,0,electric_stage_length()])
+        //rotate([180,0,180])
+        //electric_stage();
         //
         //
         // ==========================
         // TEST PURPOSE =============
         // ==========================
         //
-        translate([0,0,-h_tube_cover()-slice_thickness()-0.1])
-        female_connect_hole();
+        //translate([0,0,-h_tube_cover()-slice_thickness()-0.1])
+        //female_connect_hole();
         //
-        translate([0,30,-h_tube_cover()-slice_thickness()-0.1])
-        male_connect();
+        //translate([0,30,-h_tube_cover()-slice_thickness()-0.1])
+        //male_connect();
         //
     }
-    else if (var_gen_mode == "saber") {
+    else if (var_tail_mode == "saber") {
         //
         //
     }
 }
 
 function tail_length() =
-    (var_gen_mode == "training")
-    ? male_connect_length()+var_gen_tube_length+classic_cap_length()-2*h_tube_cover()
-    : (var_gen_mode == "esp")
-    ? 0
-    : (var_gen_mode == "saber")
+    (var_tail_mode == "training")
+    ? female_connect_length()+var_tail_tube_length+classic_cap_length()-2*h_tube_cover()
+    : (var_tail_mode == "esp")
+    ? h_top()+electric_rope_storage_length()
+    : (var_tail_mode == "saber")
     ? 0
     : 0
 ;
 
-if (compose == "tail") {
-    compose_tail();
-    echo("######## TAIL LENGTH #########");
-    echo(tail_length());
-    echo("##############################");
-}
-
 // NUNCHUK COMPOSE ####################
 
-if (compose == "nunchaku") {
+module nunchaku() {
     rotate([90,0,90])
     color("#faa")
-    if (var_nun_link == "classic") { classic_top(); }
-    else if (var_nun_link == "magnetic") { magnet_top(); }
-    translate([female_connect_length()+h_top()+0.1,0,0])
-    rotate([0,-90,0])
-    color("#faa")
-    female_connect_hole();
-    global_top = h_top()+female_connect_length();
-    global_tube = global_top+var_nun_storage_length;
-    translate([global_top-h_tube_cover()+0.2,0,0])
-    rotate([0,90,0])
-    tube(var_nun_storage_length);
-    translate([global_tube-2*h_tube_cover()+0.3,0,0])
-    rotate([90,0,90])
-    color("#faa")
-    female_connect_stop();
-    translate([global_top-h_tube_cover()/2+0.1,0,d_ext()/2])
-    rotate([180,0,0])
-    color("#ffa")
-    pin();
-    translate([global_tube-1.5*h_tube_cover()+0.3,d_ext()/2,0])
-    rotate([90,0,0])
-    color("#ffa")
-    pin();
-    global_base = global_tube+female_connect_length()-2*h_tube_cover();
-    translate([global_base-thread_length_1()+0.4,0,0])
+    if (var_nun_magnetic) { magnet_top(); }
+    else { classic_top(); }
+    translate([h_top()+0.1,0,0])
     rotate([90,0,90])
     compose_tail();
-    echo("######## TOTAL LENGTH ########");
-    echo(global_base+tail_length()-thread_length_1());
-    echo("##############################");
 }
+
+function nunchaku_length() = tail_length()+h_top();
 
 // STAFF COMPOSE ######################
 
-if (compose == "staff") {
+module staff () {
     translate([var_staff_link_length/-2,0,0])
     rotate([0,90,0])
     tube(var_staff_link_length);
@@ -570,11 +632,11 @@ if (compose == "staff") {
     translate([half_tube+0.1,0,0])
     rotate([90,0,90])
     color("#faa")
-    female_connect_hole();
+    male_connect();
     translate([-half_tube-0.1,0,0])
     rotate([0,-90,0])
     color("#faa")
-    female_connect_hole();
+    male_connect();
     translate([var_staff_link_length/2-h_tube_cover()/2+0.1,d_ext()/2,0])
     rotate([90,0,0])
     color("#ffa")
@@ -583,13 +645,67 @@ if (compose == "staff") {
     rotate([180,0,0])
     color("#ffa")
     pin();
-    translate([half_tube+female_connect_length()-thread_length_1()+0.2,0,0])
+    translate([half_tube+male_connect_length()-thread_length_1()+0.2,0,0])
     rotate([90,0,90])
     compose_tail();
-    translate([-half_tube-female_connect_length()+thread_length_1()-0.2,0,0])
+    translate([-half_tube-male_connect_length()+thread_length_1()-0.2,0,0])
     rotate([0,-90,0])
     compose_tail();
+}
+
+function staff_length() = 2*(tail_length()+slice_thickness())+var_staff_link_length;
+
+// COMPOSE SELECTOR ###################
+
+if (compose == "single part") {
+    if (var_selected_part == "pin") { pin(); }
+    else if (var_selected_part == "classic top") { classic_top(); }
+    else if (var_selected_part == "magnetic top") { magnet_top(); }  
+    else if (var_selected_part == "cap") { classic_cap(); }
+    else if (var_selected_part == "connector") {
+        if (var_connector_type == "male") { male_connect(); }
+        else if (var_connector_type == "female hole") { female_connect_hole(); }
+        else if (var_connector_type == "female stop") { female_connect_stop(); }
+        else if (var_connector_type == "double male") { double_male_connect(); }
+        else if (var_connector_type == "male female stop") { male_female_connect_stop(); }
+        else if (var_connector_type == "male female hole") { male_female_connect_hole(); }
+        else if (var_connector_type == "double female stop") { double_female_connect_stop(); }
+        else if (var_connector_type == "double female hole") { double_female_connect_hole(); }
+    }
+    else if (var_selected_part == "electric") {
+        if (var_electric_part == "rope storage") { electric_rope_storage(); }
+        else if (var_electric_part == "cap") { electric_cap(); }
+        else if (var_electric_part == "battery stage") { electric_stage(); }
+        else if (var_electric_part == "lock") { electric_lock(); }
+        else if (var_electric_part == "leds support") {
+            //
+            //
+        }
+        else if (var_electric_part == "leds hull (right)") {
+            //
+            //
+        }
+        else if (var_electric_part == "leds hull (left)") {
+            //
+            //
+        }
+    }
+}
+else if (compose == "tail") {
+    compose_tail();
+    echo("######## TAIL LENGTH #########");
+    echo(tail_length());
+    echo("##############################");
+}
+else if (compose == "nunchaku") {
+    nunchaku();
     echo("######## TOTAL LENGTH ########");
-    echo(2*(half_tube+female_connect_length()+tail_length()-thread_length_1()));
+    echo(nunchaku_length());
+    echo("##############################");
+}
+else if (compose == "staff") {
+    staff();
+    echo("######## TOTAL LENGTH ########");
+    echo(staff_length());
     echo("##############################");
 }
