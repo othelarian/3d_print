@@ -88,7 +88,7 @@ function l_plate_pin() = 4;
 function h_plate_pin() = 1;
 function t_wire_well() = 1.6;
 function v_wire_well() = -10.6;
-function h_lock_guide() = 6;
+function h_lock_guide() = 12;
 function t_lock_guide() = 6;
 //
 function h_lock() = 10;
@@ -349,12 +349,10 @@ module electric_rope_storage() {
         translate([0,0,electric_rope_storage_length()])
         rotate([0,180,0])
         thread_negative_1();
-        //
-        // TODO : pass through cut
-        //
-        translate([0,0,])
-        cylinder(d=d_intern(),h=);
-        //
+        translate([0,0,thread_length_1()+thread_pitch_1()-0.1])
+        #cylinder(d=d_intern(),h=h_ers_in_tube()+0.1);
+        translate([0,0,thread_length_1()+thread_pitch_1()+h_ers_in_tube()-0.1])
+        #cylinder(d1=d_intern(),d2=d_intern()-10*slice_thickness(),h=5*slice_thickness()+0.1);
         if (eclate_electric_rope) {
             translate([0,0,-0.1])
             cube([d_ext()/2+0.1,d_ext()/2+0.1,electric_rope_storage_length()+0.2]);
@@ -385,6 +383,11 @@ module electric_cap() {
 function electric_cap_length() = 0;
 
 module electric_stage() {
+    //
+    // TODO : add 4 SLICE_THICKNESS for the LOCK instead of 1
+    //
+    h_base = h_support_board()+4*slice_thickness();
+    //
     difference() {
         union() {
             translate([
@@ -393,13 +396,26 @@ module electric_stage() {
                 0
             ])
             cube([
-                t_support_board(), //h
-                l_support_board()+2*slice_thickness(), //l
-                h_support_board()+4*slice_thickness()+0.1 //t
+                t_support_board(),
+                l_support_board()+2*slice_thickness(),
+                h_base+0.1
             ]);
             //
             s_tube_length = h_battery()+2*slice_thickness()-thread_length_1();
             //
+            // IDEA : a thread + ext cyl + a thread
+            //
+            color("pink")
+            translate([0,0,h_base])
+            thread_1();
+            //
+            translate([0,0,h_base+thread_length_1()-0.1])
+            cylinder(d=d_ext(),h=         10          +0.2);
+            //
+            //translate([0,0,h_base+thread_length_1()+      ???       ])
+            //thread_1();
+            //
+            /*
             translate([0,0,h_support_board()+4*slice_thickness()])
             cylinder(d=d_tube_ext(),h=s_tube_length       -15         +0.1);
             //
@@ -410,7 +426,9 @@ module electric_stage() {
             //
             translate([0,0,h_support_board()+4*slice_thickness()+s_tube_length])
             thread_1();
+            */
         }
+        /*
         translate([t_support_board()/-2+v_support_board()-0.1,l_support_board()/-2,slice_thickness()])
         cube([t_support_board()+0.2,l_support_board(),h_support_board()]);
         translate([
@@ -431,10 +449,15 @@ module electric_stage() {
             translate([0,0,-0.1])
             cylinder(d=d_tube_ext()-slice_thickness(),h=2*slice_thickness()+0.2);
         }
+        */
+        //
+        //
         if (eclate_electric_stage) {
             translate([0,0,h_support_board()+4*slice_thickness()-0.1])
             cube([d_ext()/2,d_ext()/2,h_battery()+2*slice_thickness()+0.2]);
         }
+        //
+        //
     }
     if (var_show_electric_parts) {
         translate([-2,0,0]) {
@@ -456,21 +479,22 @@ module electric_stage() {
 function electric_stage_length() = h_support_board()+6*slice_thickness()+h_battery();
 
 module electric_lock() {
+    nb_slices = 4;
     s_t_lock_guide = t_lock_guide()-v_gap();
     s_d_electric_stage = d_electric_stage()-v_gap();
     difference() {
         union() {
-            cylinder(d=s_d_electric_stage-slice_thickness(),h=slice_thickness());
+            cylinder(d=s_d_electric_stage-slice_thickness(),h=h_lock_guide());
             intersection() {
                 cylinder(d=d_electric_stage(),h=h_lock_guide());
                 translate([s_t_lock_guide/-2,0,0])
                 cube([s_t_lock_guide,d_electric_stage(),h_lock_guide()-v_gap()]);
             }
         }
-        translate([0,0,slice_thickness()])
-        cylinder(d=d_electric_stage()-slice_thickness(),h=h_lock_guide()-slice_thickness()+0.1);
+        translate([0,0,nb_slices*slice_thickness()])
+        cylinder(d=d_electric_stage()-slice_thickness(),h=h_lock_guide()-nb_slices*slice_thickness()+0.1);
         translate([l_plate_pin()/-2,(s_d_electric_stage-slice_thickness())/-2,-0.1])
-        cube([l_plate_pin(),h_plate_pin(),slice_thickness()+0.2]);
+        cube([l_plate_pin(),h_plate_pin(),nb_slices*slice_thickness()+0.2]);
     }
 }
 
